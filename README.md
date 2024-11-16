@@ -1,9 +1,12 @@
 # Community Notifier
 
+Work in progress on making it pretty, but it works.
+
 ## Setup
 
 1. Clone the repository.
-2. Configure your API keys in `config.py`.
+2. Install `uv` as per https://docs.astral.sh/uv/
+3. Configure your API keys & Webhooks in `notifier/config.py`.
 
 ~~~python
 # Avatar URL for the bot
@@ -76,11 +79,11 @@ customers = [
     }
 ]
 ~~~
-## Usage
 
-Run the main script to send notifications:
+4. Run the main script to send notifications:
 
 ```sh
+cd notifier
 uv run main.py [--once|--watch]
 ```
 
