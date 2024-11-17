@@ -7,26 +7,59 @@ import requests
 import argparse
 import humanize
 import yaml
+import dateparser
+import hashlib
 from datetime import datetime
-from dateutil.parser import isoparse
+from dateutil.parser import isoparse, ParserError
 from discord_notifier import send_discord_message, format_governance_for_discord, format_status_for_discord
 from slack_notifier import send_slack_message, format_governance_for_slack, format_status_for_slack
 from telegram_notifier import send_telegram_message_sync, format_governance_for_telegram, format_status_for_telegram
 from statuspage_notifier import update_statuspage, format_status_for_statuspage
 from loguru import logger
 import time
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 PICKLE_FILE = 'sent_updates.pkl'
+CONFIG_FILE = 'config.yaml'
 
 def load_config():
-    with open('config.yaml', 'r') as file:
+    with open(CONFIG_FILE, 'r') as file:
         config = yaml.safe_load(file)
     return config
 
+def get_config_mtime():
+    return os.path.getmtime(CONFIG_FILE)
+
 config = load_config()
+config_mtime = get_config_mtime()
 avatar_url = config['avatar_url']
 statuspages = config['statuspages']
 customers = config['customers']
+
+def parse_date(date_str, incident_or_proposal_id, date_type):
+    logger.debug(f"Raw {date_type} date for ID {incident_or_proposal_id}: {date_str}")
+    try:
+        logger.debug(f"Attempting ISO 8601 parse for {date_type} date: {date_str}")
+        return isoparse(date_str)
+    except (ParserError, ValueError):
+        logger.debug(f"Attempting relative time parse for {date_type} date: {date_str}")
+        parsed_date = dateparser.parse(date_str)
+        if parsed_date:
+            return parsed_date
+        else:
+            logger.error(f"Failed to parse {date_type} date for ID {incident_or_proposal_id}: {date_str}")
+            return date_str
+
+def hash_data(data):
+    data_copy = data.copy()
+    # Remove _display fields
+    for key in list(data_copy.keys()):
+        if key.endswith('_display'):
+            del data_copy[key]
+    data_str = str(data_copy)
+    logger.debug(f"Hashing data: {data_str}")
+    return hashlib.md5(data_str.encode('utf-8')).hexdigest()
 
 def load_sent_updates():
     if os.path.exists(PICKLE_FILE):
@@ -44,26 +77,41 @@ def save_sent_updates(sent_updates):
 def fetch_status_updates(api_key, page_id):
     url = f"https://api.statuspage.io/v1/pages/{page_id}/incidents"
     headers = {"Authorization": f"OAuth {api_key}"}
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
+    
+    session = requests.Session()
+    retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504, 522, 524])
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+    
+    try:
+        response = session.get(url, headers=headers)
+        response.raise_for_status()
         logger.info("Fetched status updates")
         return response.json()
-    logger.error("Failed to fetch status updates")
-    return []
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to fetch status updates: {e}")
+        return []
 
 def format_status_update(incident):
     latest_update = incident["incident_updates"][0] if incident["incident_updates"] else {}
-    created_at = humanize.naturaltime(isoparse(incident["created_at"]))
-    updated_at = humanize.naturaltime(isoparse(incident["updated_at"]))
-    resolved_at = humanize.naturaltime(isoparse(incident.get("resolved_at")))
+    created_at = incident["created_at"]
+    updated_at = incident["updated_at"]
+    resolved_at = incident.get("resolved_at")
+
+    created_at_display = humanize.naturaltime(parse_date(created_at, incident["id"], "created_at"))
+    updated_at_display = humanize.naturaltime(parse_date(updated_at, incident["id"], "updated_at"))
+    resolved_at_display = humanize.naturaltime(parse_date(resolved_at, incident["id"], "resolved_at")) if resolved_at else None
+
     formatted_update = {
         "id": incident["id"],
         "title": incident["name"],
         "link": incident["shortlink"],
         "status": incident["status"],
         "created_at": created_at,
+        "created_at_display": created_at_display,
         "updated_at": updated_at,
+        "updated_at_display": updated_at_display,
         "resolved_at": resolved_at,
+        "resolved_at_display": resolved_at_display,
         "impact": incident["impact"],
         "latest_update": latest_update.get('body', 'No updates available.')
     }
@@ -72,12 +120,19 @@ def format_status_update(incident):
 def fetch_governance_proposals():
     url = 'https://zetachain.blockpi.network/lcd/v1/public/cosmos/gov/v1/proposals?proposal_status=PROPOSAL_STATUS_UNSPECIFIED&pagination.count_total=true&pagination.reverse=true'
     headers = {'accept': 'application/json'}
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
+    
+    session = requests.Session()
+    retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504, 522, 524])
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+    
+    try:
+        response = session.get(url, headers=headers)
+        response.raise_for_status()
         logger.info("Fetched governance proposals")
         return response.json().get('proposals', [])
-    logger.error("Failed to fetch governance proposals")
-    return []
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to fetch governance proposals: {e}")
+        return []
 
 def format_governance_proposal(proposal):
     proposal_link = f"https://hub.zetachain.com/governance/proposal/{proposal['id']}"
@@ -99,10 +154,14 @@ def format_governance_proposal(proposal):
     no_percentage = (no_count / total_votes) * 100 if total_votes > 0 else 0
     no_with_veto_percentage = (no_with_veto_count / total_votes) * 100 if total_votes > 0 else 0
 
-    submit_time =  humanize.naturaltime(isoparse(proposal['submit_time']))
-    deposit_end_time =  humanize.naturaltime(isoparse(proposal['deposit_end_time']))
-    voting_end_time =  humanize.naturaltime(isoparse(proposal['voting_end_time']))
-    
+    submit_time = proposal['submit_time']
+    deposit_end_time = proposal['deposit_end_time']
+    voting_end_time = proposal['voting_end_time']
+
+    submit_time_display = humanize.naturaltime(parse_date(submit_time, proposal['id'], "submit_time"))
+    deposit_end_time_display = humanize.naturaltime(parse_date(deposit_end_time, proposal['id'], "deposit_end_time"))
+    voting_end_time_display = humanize.naturaltime(parse_date(voting_end_time, proposal['id'], "voting_end_time"))
+
     formatted_proposal = {
         "status_icon": status_icon,
         "id": proposal['id'],
@@ -111,8 +170,11 @@ def format_governance_proposal(proposal):
         "status": proposal['status'],
         "type": proposal['messages'][0]['@type'],
         "submit_time": submit_time,
+        "submit_time_display": submit_time_display,
         "deposit_end_time": deposit_end_time,
+        "deposit_end_time_display": deposit_end_time_display,
         "voting_end_time": voting_end_time,
+        "voting_end_time_display": voting_end_time_display,
         "yes_count": yes_count,
         "abstain_count": abstain_count,
         "no_count": no_count,
@@ -144,7 +206,7 @@ def notify_customer(customer, update, update_type):
         
         if customer["statuspage"]["enabled"]:
             message = format_status_for_statuspage(update, customer, config)
-            update_statuspage(customer["statuspage"]["api_key"], customer["statuspage"]["page_id"], message, config)
+            update_statuspage(customer["statuspage"]["api_key"], customer["statuspage"]["page_id"], message)
             logger.info(f"Updated Statuspage for {customer['name']}")
     elif update_type == "governance":
         if customer["discord"]["enabled"]:
@@ -163,6 +225,8 @@ def notify_customer(customer, update, update_type):
             logger.info(f"Sent Telegram message to {customer['name']}")
 
 def main(override_date_filter):
+    global config, config_mtime, avatar_url, statuspages, customers
+
     sent_updates = load_sent_updates()
     statuspage = statuspages[0]  # Assuming you want to use the first statuspage configuration
     updates = fetch_status_updates(statuspage["api_key"], statuspage["page_id"])
@@ -175,15 +239,31 @@ def main(override_date_filter):
         new_proposals = [proposals[0]] if proposals else []
         logger.info("Override date filter: Sending the latest update and proposal regardless of date")
     else:
-        new_updates = [update for update in formatted_updates if update["id"] not in sent_updates and isoparse(update["created_at"]).date() == today]
-        new_proposals = [proposal for proposal in proposals if proposal['id'] not in sent_updates and isoparse(proposal['submit_time']).date() == today]
+        new_updates = []
+        for update in formatted_updates:
+            try:
+                update_hash = hash_data(update)
+                if update_hash not in sent_updates and (isoparse(update["created_at"]).date() == today or isoparse(update["updated_at"]).date() == today):
+                    new_updates.append(update)
+            except (ParserError, ValueError) as e:
+                logger.error(f"Failed to parse date for update {update['id']}: {e}")
+
+        new_proposals = []
+        for proposal in proposals:
+            try:
+                proposal_hash = hash_data(proposal)
+                if proposal_hash not in sent_updates and isoparse(proposal['submit_time']).date() == today:
+                    new_proposals.append(proposal)
+            except (ParserError, ValueError) as e:
+                logger.error(f"Failed to parse date for proposal {proposal['id']}: {e}")
 
     if new_updates or new_proposals:
         for update in new_updates:
             for customer in customers:
                 if customer["enable"]:
                     notify_customer(customer, update, "status")
-                    sent_updates.add(update["id"])
+                    update_hash = hash_data(update)
+                    sent_updates.add(update_hash)
                     logger.info(f"Notified {customer['name']} about status update {update['title']}")
         
         for proposal in new_proposals:
@@ -191,7 +271,8 @@ def main(override_date_filter):
             for customer in customers:
                 if customer["enable"]:
                     notify_customer(customer, formatted_proposal, "governance")
-                    sent_updates.add(proposal['id'])
+                    proposal_hash = hash_data(proposal)
+                    sent_updates.add(proposal_hash)
                     logger.info(f"Notified {customer['name']} about governance proposal {proposal['title']}")
         
         save_sent_updates(sent_updates)
@@ -201,7 +282,11 @@ if __name__ == "__main__":
     parser.add_argument('--override-date-filter', action='store_true', help="Override date filter and send the latest update and proposal regardless of date")
     parser.add_argument('--once', action='store_true', help="Run the script once and exit")
     parser.add_argument('--watch', action='store_true', help="Keep the script running and check for updates every 30 seconds")
+    parser.add_argument('--loglevel', default='info', choices=['debug', 'info', 'warning', 'error', 'critical'], help="Set the logging level")
     args = parser.parse_args()
+
+    logger.remove()
+    logger.add(lambda msg: print(msg, end=''), level=args.loglevel.upper(), colorize=True)
 
     if not any(vars(args).values()):
         parser.print_help()
@@ -211,6 +296,14 @@ if __name__ == "__main__":
             main(args.override_date_filter)
         elif args.watch:
             while True:
+                current_mtime = get_config_mtime()
+                if current_mtime != config_mtime:
+                    logger.info("Detected changes in config.yaml, reloading configuration")
+                    config = load_config()
+                    config_mtime = current_mtime
+                    avatar_url = config['avatar_url']
+                    statuspages = config['statuspages']
+                    customers = config['customers']
                 main(args.override_date_filter)
                 time.sleep(30)
         logger.info("Notifier script finished")
