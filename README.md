@@ -117,3 +117,6 @@ optional arguments:
 
 ### Telegram
 ![Telegram Example](assets/governance_telegram.png)
+
+### Statuspage Incident Upstream
+![Statuspage Incident Upstream Example](assets/status_upstream.png)
