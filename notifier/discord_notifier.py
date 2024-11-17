@@ -10,6 +10,14 @@ def format_status_for_discord(update, customer, config):
         color = 0x00ff00 # Green color
     elif update['status'] == 'under investigation':
         color = 0xffff00 # Yellow color
+    elif update['status'] == 'new':
+        color = 0x0000ff # Blue color
+    elif update['status'] == 'postmortem':
+        color = 0x800080 # Purple color
+    elif update['status'] == 'scheduled':
+        color = 0x808080 # Gray color
+    elif update['status'] == 'monitoring':
+        color = 0xffa500 # Orange color
     else:
         color = 0x000000 # Black color
 
