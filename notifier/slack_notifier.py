@@ -105,11 +105,46 @@ def format_governance_for_slack(proposal, customer, config):
         }
     ]
 
-def send_slack_message(webhook_url, message_blocks, config):
+def get_color_based_on_status(status):
+    # Statuspage statuses
+    if status == 'investigating':
+        return "#ffa500"  # Orange color
+    elif status == 'resolved':
+        return "#00ff00"  # Green color
+    elif status == 'under investigation':
+        return "#ffff00"  # Yellow color
+    elif status == 'identified':
+        return "#FF8C00"  # Dark Orange color
+    elif status == 'new':
+        return "#0000ff"  # Blue color
+    elif status == 'postmortem':
+        return "#800080"  # Purple color
+    elif status == 'scheduled':
+        return "#808080"  # Gray color
+    elif status == 'monitoring':
+        return "#90EE90"  # Lights green color
+    # Governance proposal statuses
+    elif status == 'PROPOSAL_STATUS_REJECTED':
+        return 0xff0000 # Red color
+    elif status == 'PROPOSAL_STATUS_ACCEPTED':
+        return 0x00ff00 # Green color
+    elif status == 'PROPOSAL_STATUS_UNSPECIFIED':
+        return 0xffff00 # Yellow color
+    # Default color
+    else:
+        return "#000000"  # Black color
+
+def send_slack_message(webhook_url, message_blocks, status, config):
+    color = get_color_based_on_status(status)
     data = {
         "username": "Zetachain Notifier",
-        "icon_url": "https://avatars.githubusercontent.com/u/86979844?s=200&v=4",  # Replace with your icon URL
-        "blocks": message_blocks
+        "icon_url": config['avatar_url'],  # Use the avatar URL from the config
+        "attachments": [
+            {
+                "color": color,  # Use the dynamic color
+                "blocks": message_blocks
+            }
+        ]
     }
     response = requests.post(webhook_url, json=data)
     logger.info(f"Sent Slack message with status code {response.status_code}")

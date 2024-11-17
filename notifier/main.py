@@ -196,7 +196,7 @@ def notify_customer(customer, update, update_type):
         
         if customer["slack"]["enabled"]:
             message_blocks = format_status_for_slack(update, customer, config)
-            send_slack_message(customer["slack"]["webhook_url"], message_blocks, config)
+            send_slack_message(customer["slack"]["webhook_url"], message_blocks, update['status'], config)
             logger.info(f"Sent Slack message to {customer['name']}")
         
         if customer["telegram"]["enabled"]:
@@ -216,7 +216,7 @@ def notify_customer(customer, update, update_type):
         
         if customer["slack"]["enabled"]:
             message_blocks = format_governance_for_slack(update, customer, config)
-            send_slack_message(customer["slack"]["webhook_url"], message_blocks, config)
+            send_slack_message(customer["slack"]["webhook_url"], message_blocks, update['status'], config)
             logger.info(f"Sent Slack message to {customer['name']}")
         
         if customer["telegram"]["enabled"]:
