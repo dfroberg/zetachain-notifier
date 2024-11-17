@@ -27,7 +27,16 @@ jobs:
           echo 'export LDFLAGS="-L/usr/local/opt/gettext/lib"' >> $GITHUB_ENV
           echo 'export CPPFLAGS="-I/usr/local/opt/gettext/include"' >> $GITHUB_ENV
 
-      - name: Set up Python
+      - name: Set up Python on macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          export PATH="/usr/local/opt/gettext/bin:$PATH"
+          export LDFLAGS="-L/usr/local/opt/gettext/lib"
+          export CPPFLAGS="-I/usr/local/opt/gettext/include"
+          python -m pip install --upgrade pip
+
+      - name: Set up Python on other OS
+        if: matrix.os != 'macos-latest'
         uses: actions/setup-python@v2
         with:
           python-version: '3.9'
@@ -39,4 +48,4 @@ jobs:
           spec: 'notifier/build.spec'
           requirements: 'notifier/requirements.txt'
           upload_exe_with_name: 'zetachain-notifier-${{ matrix.os }}'
-          options: --onefile, --name "Zetachain Notifier", --icon "assets/zetachain.png"
+          options: --onefile, --name "ZetachainNotifier", --icon "assets/zetachain.png"
