@@ -81,6 +81,32 @@ optional arguments:
   --watch               Keep the script running and check for updates every 30 seconds
 ~~~
 
+## Example Run
+
+~~~
+2024-11-17 11:42:46.724 | INFO     | __main__:<module>:214 - Starting notifier script
+2024-11-17 11:42:46.724 | INFO     | __main__:load_sent_updates:34 - Loaded sent updates from pickle file
+2024-11-17 11:42:47.060 | INFO     | __main__:fetch_status_updates:49 - Fetched status updates
+2024-11-17 11:42:47.231 | INFO     | __main__:fetch_governance_proposals:77 - Fetched governance proposals
+2024-11-17 11:42:47.234 | INFO     | __main__:main:181 - Override date filter: Sending the latest update and proposal regardless of date
+2024-11-17 11:42:47.503 | INFO     | discord_notifier:send_discord_message:56 - Sent Discord message with status code 204
+2024-11-17 11:42:47.504 | INFO     | __main__:notify_customer:133 - Sent Discord message to Danny's Crypto
+2024-11-17 11:42:47.871 | INFO     | slack_notifier:send_slack_message:93 - Sent Slack message with status code 200
+2024-11-17 11:42:47.872 | INFO     | __main__:notify_customer:138 - Sent Slack message to Danny's Crypto
+2024-11-17 11:42:48.246 | INFO     | telegram_notifier:send_telegram_message:44 - Sent Telegram message with message_id 39
+2024-11-17 11:42:48.248 | INFO     | __main__:notify_customer:143 - Sent Telegram message to Danny's Crypto
+2024-11-17 11:42:48.248 | INFO     | __main__:main:192 - Notified Danny's Crypto about status update This is an example incident
+2024-11-17 11:42:48.479 | INFO     | discord_notifier:send_discord_message:56 - Sent Discord message with status code 204
+2024-11-17 11:42:48.479 | INFO     | __main__:notify_customer:153 - Sent Discord message to Danny's Crypto
+2024-11-17 11:42:48.768 | INFO     | slack_notifier:send_slack_message:93 - Sent Slack message with status code 200
+2024-11-17 11:42:48.769 | INFO     | __main__:notify_customer:158 - Sent Slack message to Danny's Crypto
+2024-11-17 11:42:49.016 | INFO     | telegram_notifier:send_telegram_message:44 - Sent Telegram message with message_id 40
+2024-11-17 11:42:49.020 | INFO     | __main__:notify_customer:163 - Sent Telegram message to Danny's Crypto
+2024-11-17 11:42:49.020 | INFO     | __main__:main:200 - Notified Danny's Crypto about governance proposal v21 Upgrade
+2024-11-17 11:42:49.021 | INFO     | __main__:save_sent_updates:42 - Saved sent updates to pickle file
+2024-11-17 11:42:49.021 | INFO     | __main__:<module>:221 - Notifier script finished
+~~~
+
 ## Examples
 
 ### Slack
