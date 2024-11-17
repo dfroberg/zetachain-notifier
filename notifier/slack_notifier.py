@@ -1,3 +1,4 @@
+import textwrap
 import requests
 from loguru import logger
 
@@ -8,7 +9,16 @@ def format_status_for_slack(update, customer, config):
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"Hi {customer['name']}\n\n*Status Update: {update['title']}*\n{update['latest_update']}\n\n*Status:* {update['status']}\n*Impact:* {update['impact']}\n*Link:* {update['link']}\n"
+                "text": textwrap.dedent(f"""
+                            Hi {customer['name']}
+                            
+                            *Status Update: {update['title']}*
+                            {update['latest_update']}
+                            
+                            *Status:* {update['status']}
+                            *Impact:* {update['impact']}
+                            *Link:* {update['link']}
+                        """)
             }
         }, 
         { 
@@ -32,7 +42,19 @@ def format_governance_for_slack(proposal, customer, config):
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"Hi {customer['name']}\n\n{proposal['status_icon']} *Governance Proposal: #{proposal['id']} - {proposal['title']}*\n{proposal['summary']}\n\n*Status:* {proposal['status']}\n*Type:* {proposal['type']}\n*Submit Time:* {proposal['submit_time']}\n*Deposit End Time:* {proposal['deposit_end_time']}\n*Voting End Time:* {proposal['voting_end_time']}\n"
+                "text": textwrap.dedent(f"""
+                            Hi {customer['name']}
+
+                            {proposal['status_icon']} *Governance Proposal: #{proposal['id']} - {proposal['title']}*
+                            
+                            {proposal['summary']}
+                            
+                            *Status:* {proposal['status']}
+                            *Type:* {proposal['type']}
+                            *Submit Time:* {proposal['submit_time']}
+                            *Deposit End Time:* {proposal['deposit_end_time']}
+                            *Voting End Time:* {proposal['voting_end_time']}
+                        """)
             }
         },
         {
