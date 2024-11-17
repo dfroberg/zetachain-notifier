@@ -3,6 +3,16 @@ from loguru import logger
 
 def format_status_for_discord(update, customer, config):
     avatar_url = config['avatar_url']
+    # Set color based on update['status'] value
+    if update['status'] == 'investigating':
+        color = 0xffa500 # Orange color
+    elif update['status'] == 'resolved':
+        color = 0x00ff00 # Green color
+    elif update['status'] == 'under investigation':
+        color = 0xffff00 # Yellow color
+    else:
+        color = 0x000000 # Black color
+
     embed = {
         "author": {
             "name": "Zetachain Community Notifier",
@@ -10,7 +20,7 @@ def format_status_for_discord(update, customer, config):
         },
         "title": f"Status Update: {update['title']}",
         "description": update['latest_update'],
-        "color": 0x00ff00,  # Green color
+        "color": color,
         "fields": [
             {"name": "Status", "value": update['status'], "inline": True},
             {"name": "Impact", "value": update['impact'], "inline": True},
@@ -24,6 +34,16 @@ def format_status_for_discord(update, customer, config):
 
 def format_governance_for_discord(proposal, customer, config):
     avatar_url = config['avatar_url']
+    # Set color based on proposal['status'] value
+    if proposal['status'] == 'PROPOSAL_STATUS_REJECTED':
+        color = 0xff0000 # Red color
+    elif proposal['status'] == 'PROPOSAL_STATUS_ACCEPTED':
+        color = 0x00ff00 # Green color
+    elif proposal['status'] == 'PROPOSAL_STATUS_UNSPECIFIED':
+        color = 0xffff00 # Yellow color
+    else:
+        color = 0x000000 # Black color
+
     embed = {
         "author": {
             "name": "Zetachain Community Notifier",
@@ -35,9 +55,9 @@ def format_governance_for_discord(proposal, customer, config):
         "fields": [
             {"name": "Status", "value": proposal['status'], "inline": True},
             {"name": "Type", "value": proposal['type'], "inline": True},
-            {"name": "Submit Time", "value": proposal['submit_time'], "inline": False},
-            {"name": "Deposit End Time", "value": proposal['deposit_end_time'], "inline": False},
-            {"name": "Voting End Time", "value": proposal['voting_end_time'], "inline": False},
+            {"name": "Submit Time", "value": proposal['submit_time_display'], "inline": False},
+            {"name": "Deposit End Time", "value": proposal['deposit_end_time_display'], "inline": False},
+            {"name": "Voting End Time", "value": proposal['voting_end_time_display'], "inline": False},
             {"name": "Yes", "value": f"{proposal['yes_percentage']:.2f}%\n{proposal['yes_count']:,.2f} ZETA", "inline": True},
             {"name": "No", "value": f"{proposal['no_percentage']:.2f}%\n{proposal['no_count']:,.2f} ZETA", "inline": True},
             {"name": "Abstain", "value": f"{proposal['abstain_percentage']:.2f}%\n{proposal['abstain_count']:,.2f} ZETA", "inline": True},
