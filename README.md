@@ -120,3 +120,6 @@ optional arguments:
 
 ### Statuspage Incident Upstream
 ![Statuspage Incident Upstream Example](assets/status_upstream.png)
+
+### Statuspage Discord
+![Statuspage Discord Example](assets/status_discord.png)
