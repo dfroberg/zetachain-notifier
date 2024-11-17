@@ -1,25 +1,39 @@
 import requests
 from loguru import logger
 
+def get_color_based_on_status(status):
+    # Statuspage statuses
+    if status == 'investigating':
+        return "#ffa500"  # Orange color
+    elif status == 'resolved':
+        return "#00ff00"  # Green color
+    elif status == 'under investigation':
+        return "#ffff00"  # Yellow color
+    elif status == 'identified':
+        return "#FF8C00"  # Dark Orange color
+    elif status == 'new':
+        return "#0000ff"  # Blue color
+    elif status == 'postmortem':
+        return "#800080"  # Purple color
+    elif status == 'scheduled':
+        return "#808080"  # Gray color
+    elif status == 'monitoring':
+        return "#90EE90"  # Lights green color
+    # Governance proposal statuses
+    elif status == 'PROPOSAL_STATUS_REJECTED':
+        return 0xff0000 # Red color
+    elif status == 'PROPOSAL_STATUS_ACCEPTED':
+        return 0x00ff00 # Green color
+    elif status == 'PROPOSAL_STATUS_UNSPECIFIED':
+        return 0xffff00 # Yellow color
+    # Default color
+    else:
+        return "#000000"  # Black color
+    
 def format_status_for_discord(update, customer, config):
     avatar_url = config['avatar_url']
     # Set color based on update['status'] value
-    if update['status'] == 'investigating':
-        color = 0xffa500 # Orange color
-    elif update['status'] == 'resolved':
-        color = 0x00ff00 # Green color
-    elif update['status'] == 'under investigation':
-        color = 0xffff00 # Yellow color
-    elif update['status'] == 'new':
-        color = 0x0000ff # Blue color
-    elif update['status'] == 'postmortem':
-        color = 0x800080 # Purple color
-    elif update['status'] == 'scheduled':
-        color = 0x808080 # Gray color
-    elif update['status'] == 'monitoring':
-        color = 0xffa500 # Orange color
-    else:
-        color = 0x000000 # Black color
+    color = get_color_based_on_status(update['status'])
 
     embed = {
         "author": {
@@ -28,7 +42,7 @@ def format_status_for_discord(update, customer, config):
         },
         "title": f"Status Update: {update['title']}",
         "description": update['latest_update'],
-        "color": color,
+        "color": color, # Use the color based on the update status
         "fields": [
             {"name": "Status", "value": update['status'], "inline": True},
             {"name": "Impact", "value": update['impact'], "inline": True},
@@ -43,14 +57,7 @@ def format_status_for_discord(update, customer, config):
 def format_governance_for_discord(proposal, customer, config):
     avatar_url = config['avatar_url']
     # Set color based on proposal['status'] value
-    if proposal['status'] == 'PROPOSAL_STATUS_REJECTED':
-        color = 0xff0000 # Red color
-    elif proposal['status'] == 'PROPOSAL_STATUS_ACCEPTED':
-        color = 0x00ff00 # Green color
-    elif proposal['status'] == 'PROPOSAL_STATUS_UNSPECIFIED':
-        color = 0xffff00 # Yellow color
-    else:
-        color = 0x000000 # Black color
+    color = get_color_based_on_status(proposal['status'])
 
     embed = {
         "author": {
@@ -59,7 +66,7 @@ def format_governance_for_discord(proposal, customer, config):
         },
         "title": f"{proposal['status_icon']} Governance Proposal: #{proposal['id']} - {proposal['title']}",
         "description": proposal['summary'],
-        "color": 0x0000ff,  # Blue color
+        "color": color, # Use the color based on the proposal status
         "fields": [
             {"name": "Status", "value": proposal['status'], "inline": True},
             {"name": "Type", "value": proposal['type'], "inline": True},
