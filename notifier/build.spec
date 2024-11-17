@@ -3,7 +3,7 @@
 block_cipher = None
 
 a = Analysis(
-    ['notifier/main.py'],
+    ['main.py'],
     pathex=['.'],
     binaries=[],
     datas=[
