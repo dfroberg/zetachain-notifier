@@ -63,8 +63,23 @@ customers:
 
 ```sh
 cd notifier
-uv run main.py [--once|--watch]
+uv run main.py [--once|--watch] [--override-date-filter]
 ```
+
+# Usage
+
+~~~sh
+usage: main.py [-h] [--override-date-filter] [--once] [--watch]
+
+Notifier script for ZetaChain updates and proposals
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --override-date-filter
+                        Override date filter and send the latest update and proposal regardless of date
+  --once                Run the script once and exit
+  --watch               Keep the script running and check for updates every 30 seconds
+~~~
 
 ## Examples
 
