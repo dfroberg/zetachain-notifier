@@ -7,7 +7,7 @@ repos:
         args: [fix, feat, docs, ci, chore] # optional: list of Conventional Commits types to allow e.g. [fix, feat, docs, ci, chore]
   - repo: https://github.com/astral-sh/uv-pre-commit
     # uv version.
-    rev: 0.4.30
+    rev: 0.5.2
     hooks:
       - id: uv-export
         args: ["--frozen", "--output-file=notifier/requirements.txt"]
