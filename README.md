@@ -1,6 +1,8 @@
-# Community Notifier
+# Zetachain Community Notifier
 
 Work in progress on making it pretty, but it works.
+
+Artifacts for mac & linux (ubuntu) are stored in the github workflow runs.
 
 ## Setup
 
@@ -9,7 +11,7 @@ Work in progress on making it pretty, but it works.
     - `brew install pre-commit` # for macOS
     - `pip install pre-commit` # for Linux
     - `uv` as per https://docs.astral.sh/uv/
-    - `uv pip install -U pyinstaller` to create a standalone executable
+    - `uv pip install -U pyinstaller` to create a standalone executables
 3. Configure your API keys & Webhooks in `notifier/config.yaml`.
 
 ~~~yaml
