@@ -6,6 +6,8 @@ Work in progress on making it pretty, but it works.
 
 1. Clone the repository.
 2. Install 
+    - `brew install pre-commit` # for macOS
+    - `pip install pre-commit` # for Linux
     - `uv` as per https://docs.astral.sh/uv/
     - `uv pip install -U pyinstaller` to create a standalone executable
 3. Configure your API keys & Webhooks in `notifier/config.yaml`.
