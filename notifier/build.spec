@@ -7,7 +7,7 @@ a = Analysis(
     pathex=['.'],
     binaries=[],
     datas=[
-        ('assets/zetachain.png', 'assets'),
+        ('../assets/zetachain.png', 'assets'),
         ('config.yaml', '.'),
     ],
     hiddenimports=[],
