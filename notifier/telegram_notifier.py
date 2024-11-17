@@ -17,7 +17,7 @@ def format_status_for_telegram(update, customer, config):
             *Impact:* {update['impact']}
             *Link:* {update['link']}
 
-            Sent via Zetachain Community Notifier
+            _Sent via Zetachain Community Notifier_
             Tags: {', '.join([f'`{tag}`' for tag in customer['groups']])}
         """)
     except KeyError as e:
@@ -56,7 +56,7 @@ def format_governance_for_telegram(proposal, customer, config):
             {proposal['no_with_veto_count']:,.2f} ZETA
             More details: {proposal['proposal_link']}
 
-            Sent via Zetachain Community Notifier
+            _Sent via Zetachain Community Notifier_
             Tags: {tags_text}
         """)
     except KeyError as e:
