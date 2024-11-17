@@ -33,7 +33,7 @@ jobs:
           pyinstaller --onefile --name "Zetachain Notifier" --icon "assets/zetachain.png" notifier/build.spec
 
       - name: Upload Executable
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: zetachain-notifier-${{ matrix.os }}
           path: dist/Zetachain-Notifier
