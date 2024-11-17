@@ -5,7 +5,9 @@ Work in progress on making it pretty, but it works.
 ## Setup
 
 1. Clone the repository.
-2. Install `uv` as per https://docs.astral.sh/uv/
+2. Install 
+    - `uv` as per https://docs.astral.sh/uv/
+    - `uv pip install -U pyinstaller` to create a standalone executable
 3. Configure your API keys & Webhooks in `notifier/config.yaml`.
 
 ~~~yaml

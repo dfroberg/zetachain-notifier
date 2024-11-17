@@ -1,0 +1,39 @@
+name: PyInstaller Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  pyinstaller-build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r notifier/requirements.txt
+
+      - name: Create Executable
+        run: |
+          pyinstaller --onefile --name "Zetachain Notifier" --icon "assets/zetachain.png" notifier/build.spec
+
+      - name: Upload Executable
+        uses: actions/upload-artifact@v2
+        with:
+          name: zetachain-notifier-${{ matrix.os }}
+          path: dist/Zetachain-Notifier
