@@ -21,6 +21,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 PICKLE_FILE = 'sent_updates.pkl'
+COMPONENTS_FILE = 'affected_components.pkl'
 CONFIG_FILE = 'config.yaml'
 
 def load_config():
@@ -31,11 +32,25 @@ def load_config():
 def get_config_mtime():
     return os.path.getmtime(CONFIG_FILE)
 
+def load_affected_components():
+    if os.path.exists(COMPONENTS_FILE):
+        with open(COMPONENTS_FILE, 'rb') as f:
+            logger.info("Loaded affected components from pickle file")
+            return pickle.load(f)
+    logger.info("No affected components found, returning empty dict")
+    return {}
+
+def save_affected_components(affected_components):
+    with open(COMPONENTS_FILE, 'wb') as f:
+        pickle.dump(affected_components, f)
+    logger.info("Saved affected components to pickle file")
+
 config = load_config()
 config_mtime = get_config_mtime()
 avatar_url = config['avatar_url']
 statuspages = config['statuspages']
 customers = config['customers']
+affected_components = load_affected_components()
 
 def parse_date(date_str, incident_or_proposal_id, date_type):
     logger.debug(f"Raw {date_type} date for ID {incident_or_proposal_id}: {date_str}")
@@ -89,6 +104,23 @@ def fetch_status_updates(api_key, page_id):
         return response.json()
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to fetch status updates: {e}")
+        return []
+
+def fetch_statuspage_components(api_key, page_id):
+    url = f"https://api.statuspage.io/v1/pages/{page_id}/components"
+    headers = {"Authorization": f"OAuth {api_key}"}
+    
+    session = requests.Session()
+    retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504, 522, 524])
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+    
+    try:
+        response = session.get(url, headers=headers)
+        response.raise_for_status()
+        logger.info(f"Fetched components for status page {page_id}")
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to fetch components for status page {page_id}: {e}")
         return []
 
 def format_status_update(incident):
@@ -154,13 +186,9 @@ def format_governance_proposal(proposal):
     no_percentage = (no_count / total_votes) * 100 if total_votes > 0 else 0
     no_with_veto_percentage = (no_with_veto_count / total_votes) * 100 if total_votes > 0 else 0
 
-    submit_time = proposal['submit_time']
-    deposit_end_time = proposal['deposit_end_time']
-    voting_end_time = proposal['voting_end_time']
-
-    submit_time_display = humanize.naturaltime(parse_date(submit_time, proposal['id'], "submit_time"))
-    deposit_end_time_display = humanize.naturaltime(parse_date(deposit_end_time, proposal['id'], "deposit_end_time"))
-    voting_end_time_display = humanize.naturaltime(parse_date(voting_end_time, proposal['id'], "voting_end_time"))
+    submit_time = humanize.naturaltime(parse_date(proposal['submit_time'], proposal['id'], "submit_time"))
+    deposit_end_time = humanize.naturaltime(parse_date(proposal['deposit_end_time'], proposal['id'], "deposit_end_time"))
+    voting_end_time = humanize.naturaltime(parse_date(proposal['voting_end_time'], proposal['id'], "voting_end_time"))
 
     formatted_proposal = {
         "status_icon": status_icon,
@@ -170,11 +198,8 @@ def format_governance_proposal(proposal):
         "status": proposal['status'],
         "type": proposal['messages'][0]['@type'],
         "submit_time": submit_time,
-        "submit_time_display": submit_time_display,
         "deposit_end_time": deposit_end_time,
-        "deposit_end_time_display": deposit_end_time_display,
         "voting_end_time": voting_end_time,
-        "voting_end_time_display": voting_end_time_display,
         "yes_count": yes_count,
         "abstain_count": abstain_count,
         "no_count": no_count,
@@ -187,27 +212,55 @@ def format_governance_proposal(proposal):
     }
     return formatted_proposal
 
-def notify_customer(customer, update, update_type):
+def match_customers_to_incident(api_key, page_id, incident, affected_components):
+    components = fetch_statuspage_components(api_key, page_id)
+    logger.debug(f"Components: {components}")
+    
+    affected_customers = []
+    incident_components = set(component["name"] for component in components if component["status"] != "operational")
+    operational_components = set(component["name"] for component in components if component["status"] == "operational")
+    
+    for customer in customers:
+        customer_tags = set(customer["groups"])
+        
+        if "any" in customer_tags or "all" in customer_tags or customer_tags & incident_components or customer_tags & operational_components:
+            affected_customers.append(customer)
+    
+    # Update affected components memory
+    affected_components[page_id] = [component["name"] for component in components if component["status"] != "operational"]
+    save_affected_components(affected_components)
+    
+    return affected_customers, incident_components, operational_components
+
+def notify_customer(customer, update, update_type, incident_components, operational_components):
     if update_type == "status":
-        if customer["discord"]["enabled"]:
-            message = format_status_for_discord(update, customer, config)
-            send_discord_message(customer["discord"]["webhook_url"], message, config)
-            logger.info(f"Sent Discord message to {customer['name']}")
-        
-        if customer["slack"]["enabled"]:
-            message_blocks = format_status_for_slack(update, customer, config)
-            send_slack_message(customer["slack"]["webhook_url"], message_blocks, update['status'], config)
-            logger.info(f"Sent Slack message to {customer['name']}")
-        
-        if customer["telegram"]["enabled"]:
-            message = format_status_for_telegram(update, customer, config)
-            send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
-            logger.info(f"Sent Telegram message to {customer['name']}")
-        
-        if customer["statuspage"]["enabled"]:
-            message = format_status_for_statuspage(update, customer, config)
-            update_statuspage(customer["statuspage"]["api_key"], customer["statuspage"]["page_id"], message)
-            logger.info(f"Updated Statuspage for {customer['name']}")
+        for statuspage in statuspages:
+            if not statuspage.get("enabled", True):
+                continue
+
+            affected_customers, incident_components, operational_components = match_customers_to_incident(statuspage['api_key'], statuspage['page_id'], update, affected_components)
+            if customer not in affected_customers:
+                continue
+
+            if customer["discord"]["enabled"]:
+                message = format_status_for_discord(update, customer, config)
+                send_discord_message(customer["discord"]["webhook_url"], message, config)
+                logger.info(f"Sent Discord message to {customer['name']}")
+            
+            if customer["slack"]["enabled"]:
+                message_blocks = format_status_for_slack(update, customer, config)
+                send_slack_message(customer["slack"]["webhook_url"], message_blocks, update['status'], config)
+                logger.info(f"Sent Slack message to {customer['name']}")
+            
+            if customer["telegram"]["enabled"]:
+                message = format_status_for_telegram(update, customer, config)
+                send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
+                logger.info(f"Sent Telegram message to {customer['name']}")
+            
+            if customer["statuspage"]["enabled"]:
+                message = format_status_for_statuspage(update, customer, config)
+                update_statuspage(customer["statuspage"]["api_key"], customer["statuspage"]["page_id"], message)
+                logger.info(f"Updated Statuspage for {customer['name']}")
     elif update_type == "governance":
         if customer["discord"]["enabled"]:
             message = format_governance_for_discord(update, customer, config)
@@ -225,57 +278,62 @@ def notify_customer(customer, update, update_type):
             logger.info(f"Sent Telegram message to {customer['name']}")
 
 def main(override_date_filter):
-    global config, config_mtime, avatar_url, statuspages, customers
+    global config, config_mtime, avatar_url, statuspages, customers, affected_components
 
     sent_updates = load_sent_updates()
-    statuspage = statuspages[0]  # Assuming you want to use the first statuspage configuration
-    updates = fetch_status_updates(statuspage["api_key"], statuspage["page_id"])
-    formatted_updates = [format_status_update(update) for update in updates]
-    proposals = fetch_governance_proposals()
     today = datetime.now().date()
     
-    if override_date_filter:
-        new_updates = [formatted_updates[0]] if formatted_updates else []
-        new_proposals = [proposals[0]] if proposals else []
-        logger.info("Override date filter: Sending the latest update and proposal regardless of date")
-    else:
-        new_updates = []
-        for update in formatted_updates:
-            try:
-                update_hash = hash_data(update)
-                if update_hash not in sent_updates and (isoparse(update["created_at"]).date() == today or isoparse(update["updated_at"]).date() == today):
-                    new_updates.append(update)
-            except (ParserError, ValueError) as e:
-                logger.error(f"Failed to parse date for update {update['id']}: {e}")
+    for statuspage in statuspages:
+        if not statuspage.get("enabled", True):
+            continue
 
-        new_proposals = []
-        for proposal in proposals:
-            try:
-                proposal_hash = hash_data(proposal)
-                if proposal_hash not in sent_updates and isoparse(proposal['submit_time']).date() == today:
-                    new_proposals.append(proposal)
-            except (ParserError, ValueError) as e:
-                logger.error(f"Failed to parse date for proposal {proposal['id']}: {e}")
-
-    if new_updates or new_proposals:
-        for update in new_updates:
-            for customer in customers:
-                if customer["enable"]:
-                    notify_customer(customer, update, "status")
+        updates = fetch_status_updates(statuspage["api_key"], statuspage["page_id"])
+        formatted_updates = [format_status_update(update) for update in updates]
+        proposals = fetch_governance_proposals()
+        
+        if override_date_filter:
+            new_updates = [formatted_updates[0]] if formatted_updates else []
+            new_proposals = [proposals[0]] if proposals else []
+            logger.info("Override date filter: Sending the latest update and proposal regardless of date")
+        else:
+            new_updates = []
+            for update in formatted_updates:
+                try:
                     update_hash = hash_data(update)
-                    sent_updates.add(update_hash)
-                    logger.info(f"Notified {customer['name']} about status update {update['title']}")
-        
-        for proposal in new_proposals:
-            formatted_proposal = format_governance_proposal(proposal)
-            for customer in customers:
-                if customer["enable"]:
-                    notify_customer(customer, formatted_proposal, "governance")
+                    if update_hash not in sent_updates and (isoparse(update["created_at"]).date() == today or isoparse(update["updated_at"]).date() == today):
+                        new_updates.append(update)
+                except (ParserError, ValueError) as e:
+                    logger.error(f"Failed to parse date for update {update['id']}: {e}")
+
+            new_proposals = []
+            for proposal in proposals:
+                try:
                     proposal_hash = hash_data(proposal)
-                    sent_updates.add(proposal_hash)
-                    logger.info(f"Notified {customer['name']} about governance proposal {proposal['title']}")
-        
-        save_sent_updates(sent_updates)
+                    if proposal_hash not in sent_updates and isoparse(proposal['submit_time']).date() == today:
+                        new_proposals.append(proposal)
+                except (ParserError, ValueError) as e:
+                    logger.error(f"Failed to parse date for proposal {proposal['id']}: {e}")
+
+        if new_updates or new_proposals:
+            for update in new_updates:
+                for customer in customers:
+                    if customer["enable"]:
+                        affected_customers, incident_components, operational_components = match_customers_to_incident(statuspage['api_key'], statuspage['page_id'], update, affected_components)
+                        notify_customer(customer, update, "status", incident_components, operational_components)
+                        update_hash = hash_data(update)
+                        sent_updates.add(update_hash)
+                        logger.info(f"Notified {customer['name']} about status update {update['title']}")
+            
+            for proposal in new_proposals:
+                formatted_proposal = format_governance_proposal(proposal)
+                for customer in customers:
+                    if customer["enable"]:
+                        notify_customer(customer, formatted_proposal, "governance", set(), set())
+                        proposal_hash = hash_data(proposal)
+                        sent_updates.add(proposal_hash)
+                        logger.info(f"Notified {customer['name']} about governance proposal {proposal['title']}")
+            
+            save_sent_updates(sent_updates)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Notifier script for ZetaChain updates and proposals")
@@ -304,6 +362,7 @@ if __name__ == "__main__":
                     avatar_url = config['avatar_url']
                     statuspages = config['statuspages']
                     customers = config['customers']
+                    affected_components = load_affected_components()
                 main(args.override_date_filter)
                 time.sleep(30)
         logger.info("Notifier script finished")
