@@ -85,6 +85,8 @@ optional arguments:
                         Override date filter and send the latest update and proposal regardless of date
   --once                Run the script once and exit
   --watch               Keep the script running and check for updates every 30 seconds
+  --loglevel {debug,info,warning,error,critical}
+                        Set the logging level
 ~~~
 
 ## Example Run
