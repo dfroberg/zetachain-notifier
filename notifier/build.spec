@@ -8,7 +8,6 @@ a = Analysis(
     binaries=[],
     datas=[
         ('../assets/zetachain.png', 'assets'),
-        ('config.yaml', '.'),
     ],
     hiddenimports=[],
     hookspath=[],
