@@ -5,6 +5,7 @@ description = "This notifies interested parties of events relating to Zetachain.
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
+    "dateparser>=1.2.0",
     "feedparser>=6.0.11",
     "humanize>=4.11.0",
     "loguru>=0.7.2",
