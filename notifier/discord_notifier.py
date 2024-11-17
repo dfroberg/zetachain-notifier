@@ -1,8 +1,8 @@
 import requests
 from loguru import logger
-from config import avatar_url
 
-def format_status_for_discord(update, customer):
+def format_status_for_discord(update, customer, config):
+    avatar_url = config['avatar_url']
     embed = {
         "author": {
             "name": "Zetachain Community Notifier",
@@ -22,7 +22,8 @@ def format_status_for_discord(update, customer):
     }
     return embed
 
-def format_governance_for_discord(proposal, customer):
+def format_governance_for_discord(proposal, customer, config):
+    avatar_url = config['avatar_url']
     embed = {
         "author": {
             "name": "Zetachain Community Notifier",
@@ -49,7 +50,7 @@ def format_governance_for_discord(proposal, customer):
     }
     return embed
 
-def send_discord_message(webhook_url, embed):
+def send_discord_message(webhook_url, embed, config):
     data = {"embeds": [embed]}
     response = requests.post(webhook_url, json=data)
     logger.info(f"Sent Discord message with status code {response.status_code}")

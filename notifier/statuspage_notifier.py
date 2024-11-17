@@ -1,7 +1,7 @@
 import requests
 from loguru import logger
 
-def format_status_for_statuspage(update, customer):
+def format_status_for_statuspage(update, customer, config):
     return (
         f"Hi {customer['name']}\n\n"
         f"*Status Update: {update['title']}*\n"
@@ -11,7 +11,7 @@ def format_status_for_statuspage(update, customer):
         f"Link: {update['link']}\n"
     )
 
-def format_governance_for_statuspage(proposal, customer):
+def format_governance_for_statuspage(proposal, customer, config):
     tags_text = ", ".join([f"`{tag}`" for tag in customer["groups"]])
     return (
         f"Hi {customer['name']}\n\n"
@@ -32,7 +32,7 @@ def format_governance_for_statuspage(proposal, customer):
         f"Tags: {tags_text}"
     )
 
-def update_statuspage(api_key, page_id, message):
+def update_statuspage(api_key, page_id, message, config):
     url = f"https://api.statuspage.io/v1/pages/{page_id}/incidents"
     headers = {"Authorization": f"OAuth {api_key}"}
     data = {"incident": {"name": "Update", "status": "investigating", "body": message}}

@@ -4,7 +4,7 @@ from telegram.constants import ParseMode
 from telegram.error import TelegramError
 from loguru import logger
 
-def format_status_for_telegram(update, customer):
+def format_status_for_telegram(update, customer, config):
     return (
         f"Hi {customer['name']}\n\n"
         f"*Status Update: {update['title']}*\n"
@@ -16,7 +16,7 @@ def format_status_for_telegram(update, customer):
         f"Tags: {', '.join([f'`{tag}`' for tag in customer['groups']])}"
     )
 
-def format_governance_for_telegram(proposal, customer):
+def format_governance_for_telegram(proposal, customer, config):
     tags_text = ", ".join([f"`{tag}`" for tag in customer["groups"]])
     return (
         f"Hi {customer['name']}\n\n"
@@ -37,7 +37,7 @@ def format_governance_for_telegram(proposal, customer):
         f"Tags: {tags_text}"
     )
 
-async def send_telegram_message(bot_token, chat_id, message):
+async def send_telegram_message(bot_token, chat_id, message, config):
     bot = Bot(token=bot_token)
     try:
         response = await bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
@@ -47,9 +47,9 @@ async def send_telegram_message(bot_token, chat_id, message):
         return False
     return True
 
-def send_telegram_message_sync(bot_token, chat_id, message):
+def send_telegram_message_sync(bot_token, chat_id, message, config):
     loop = asyncio.get_event_loop()
-    return loop.run_until_complete(send_telegram_message(bot_token, chat_id, message))
+    return loop.run_until_complete(send_telegram_message(bot_token, chat_id, message, config))
 
 async def get_chat_id_by_name(bot_token, name):
     bot = Bot(token=bot_token)

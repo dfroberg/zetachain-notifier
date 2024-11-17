@@ -1,7 +1,7 @@
 import requests
 from loguru import logger
 
-def format_status_for_slack(update, customer):
+def format_status_for_slack(update, customer, config):
     tags_text = ", ".join([f"`{tag}`" for tag in customer["groups"]])
     return [
         {
@@ -25,7 +25,7 @@ def format_status_for_slack(update, customer):
         }
     ]
 
-def format_governance_for_slack(proposal, customer):
+def format_governance_for_slack(proposal, customer, config):
     tags_text = ", ".join([f"`{tag}`" for tag in customer["groups"]])
     return [
         {
@@ -83,7 +83,7 @@ def format_governance_for_slack(proposal, customer):
         }
     ]
 
-def send_slack_message(webhook_url, message_blocks):
+def send_slack_message(webhook_url, message_blocks, config):
     data = {
         "username": "Zetachain Notifier",
         "icon_url": "https://avatars.githubusercontent.com/u/86979844?s=200&v=4",  # Replace with your icon URL

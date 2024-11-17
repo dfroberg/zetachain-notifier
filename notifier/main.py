@@ -6,9 +6,9 @@ import os
 import requests
 import argparse
 import humanize
+import yaml
 from datetime import datetime
 from dateutil.parser import isoparse
-from config import customers, statuspages, humanize_datetime
 from discord_notifier import send_discord_message, format_governance_for_discord, format_status_for_discord
 from slack_notifier import send_slack_message, format_governance_for_slack, format_status_for_slack
 from telegram_notifier import send_telegram_message_sync, format_governance_for_telegram, format_status_for_telegram
@@ -17,6 +17,16 @@ from loguru import logger
 import time
 
 PICKLE_FILE = 'sent_updates.pkl'
+
+def load_config():
+    with open('config.yaml', 'r') as file:
+        config = yaml.safe_load(file)
+    return config
+
+config = load_config()
+avatar_url = config['avatar_url']
+statuspages = config['statuspages']
+customers = config['customers']
 
 def load_sent_updates():
     if os.path.exists(PICKLE_FILE):
@@ -43,17 +53,17 @@ def fetch_status_updates(api_key, page_id):
 
 def format_status_update(incident):
     latest_update = incident["incident_updates"][0] if incident["incident_updates"] else {}
-    created_at = isoparse(incident["created_at"])
-    updated_at = isoparse(incident["updated_at"])
-    resolved_at = isoparse(incident.get("resolved_at"))
+    created_at = humanize.naturaltime(isoparse(incident["created_at"]))
+    updated_at = humanize.naturaltime(isoparse(incident["updated_at"]))
+    resolved_at = humanize.naturaltime(isoparse(incident.get("resolved_at")))
     formatted_update = {
         "id": incident["id"],
         "title": incident["name"],
         "link": incident["shortlink"],
         "status": incident["status"],
-        "created_at": humanize.naturaltime(created_at),
-        "updated_at": humanize.naturaltime(updated_at),
-        "resolved_at": humanize.naturaltime(resolved_at),
+        "created_at": created_at,
+        "updated_at": updated_at,
+        "resolved_at": resolved_at,
         "impact": incident["impact"],
         "latest_update": latest_update.get('body', 'No updates available.')
     }
@@ -89,9 +99,9 @@ def format_governance_proposal(proposal):
     no_percentage = (no_count / total_votes) * 100 if total_votes > 0 else 0
     no_with_veto_percentage = (no_with_veto_count / total_votes) * 100 if total_votes > 0 else 0
 
-    submit_time = isoparse(proposal['submit_time'])
-    deposit_end_time = isoparse(proposal['deposit_end_time'])
-    voting_end_time = isoparse(proposal['voting_end_time'])
+    submit_time =  humanize.naturaltime(isoparse(proposal['submit_time']))
+    deposit_end_time =  humanize.naturaltime(isoparse(proposal['deposit_end_time']))
+    voting_end_time =  humanize.naturaltime(isoparse(proposal['voting_end_time']))
     
     formatted_proposal = {
         "status_icon": status_icon,
@@ -100,9 +110,9 @@ def format_governance_proposal(proposal):
         "summary": proposal['summary'],
         "status": proposal['status'],
         "type": proposal['messages'][0]['@type'],
-        "submit_time": humanize.naturaltime(submit_time),
-        "deposit_end_time": humanize.naturaltime(deposit_end_time),
-        "voting_end_time": humanize.naturaltime(voting_end_time),
+        "submit_time": submit_time,
+        "deposit_end_time": deposit_end_time,
+        "voting_end_time": voting_end_time,
         "yes_count": yes_count,
         "abstain_count": abstain_count,
         "no_count": no_count,
@@ -118,43 +128,43 @@ def format_governance_proposal(proposal):
 def notify_customer(customer, update, update_type):
     if update_type == "status":
         if customer["discord"]["enabled"]:
-            message = format_status_for_discord(update, customer)
-            send_discord_message(customer["discord"]["webhook_url"], message)
+            message = format_status_for_discord(update, customer, config)
+            send_discord_message(customer["discord"]["webhook_url"], message, config)
             logger.info(f"Sent Discord message to {customer['name']}")
         
         if customer["slack"]["enabled"]:
-            message_blocks = format_status_for_slack(update, customer)
-            send_slack_message(customer["slack"]["webhook_url"], message_blocks)
+            message_blocks = format_status_for_slack(update, customer, config)
+            send_slack_message(customer["slack"]["webhook_url"], message_blocks, config)
             logger.info(f"Sent Slack message to {customer['name']}")
         
         if customer["telegram"]["enabled"]:
-            message = format_status_for_telegram(update, customer)
-            send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message)
+            message = format_status_for_telegram(update, customer, config)
+            send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
             logger.info(f"Sent Telegram message to {customer['name']}")
         
         if customer["statuspage"]["enabled"]:
-            message = format_status_for_statuspage(update, customer)
-            update_statuspage(customer["statuspage"]["api_key"], customer["statuspage"]["page_id"], message)
+            message = format_status_for_statuspage(update, customer, config)
+            update_statuspage(customer["statuspage"]["api_key"], customer["statuspage"]["page_id"], message, config)
             logger.info(f"Updated Statuspage for {customer['name']}")
     elif update_type == "governance":
         if customer["discord"]["enabled"]:
-            message = format_governance_for_discord(update, customer)
-            send_discord_message(customer["discord"]["webhook_url"], message)
+            message = format_governance_for_discord(update, customer, config)
+            send_discord_message(customer["discord"]["webhook_url"], message, config)
             logger.info(f"Sent Discord message to {customer['name']}")
         
         if customer["slack"]["enabled"]:
-            message_blocks = format_governance_for_slack(update, customer)
-            send_slack_message(customer["slack"]["webhook_url"], message_blocks)
+            message_blocks = format_governance_for_slack(update, customer, config)
+            send_slack_message(customer["slack"]["webhook_url"], message_blocks, config)
             logger.info(f"Sent Slack message to {customer['name']}")
         
         if customer["telegram"]["enabled"]:
-            message = format_governance_for_telegram(update, customer)
-            send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message)
+            message = format_governance_for_telegram(update, customer, config)
+            send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
             logger.info(f"Sent Telegram message to {customer['name']}")
         
         if customer["statuspage"]["enabled"]:
-            message = format_governance_for_statuspage(update, customer)
-            update_statuspage(customer["statuspage"]["api_key"], customer["statuspage"]["page_id"], message)
+            message = format_governance_for_statuspage(update, customer, config)
+            update_statuspage(customer["statuspage"]["api_key"], customer["statuspage"]["page_id"], message, config)
             logger.info(f"Updated Statuspage for {customer['name']}")
 
 def main(override_date_filter):
