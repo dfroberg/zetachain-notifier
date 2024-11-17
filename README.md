@@ -131,3 +131,9 @@ optional arguments:
 
 ### Statuspage Discord
 ![Statuspage Discord Example](assets/status_discord.png)
+
+## TODO:
+
+- Create configurable templates for notifications
+- Unpack more statuspage data with components
+- Match customer tags with statuspage components
