@@ -90,9 +90,12 @@ if __name__ == "__main__":
         if args.once:
             main(args.override_date_filter)
         elif args.watch:
-            api_thread = threading.Thread(target=run_api)
-            api_thread.daemon = True
-            api_thread.start()
+            try:
+                api_thread = threading.Thread(target=run_api)
+                api_thread.daemon = True
+                api_thread.start()
+            except Exception as e:
+                logger.error(f"Failed to start API thread: {e}")
             while True:
                 current_mtime = get_config_mtime()
                 if current_mtime != config_mtime:
