@@ -44,10 +44,13 @@ def format_governance_proposal(proposal):
     no_with_veto_count = int(final_tally_result.get("no_with_veto_count", "0")) / 1e6
     total_votes = yes_count + abstain_count + no_count + no_with_veto_count
 
-    yes_percentage = (yes_count / total_votes) * 100 if total_votes > 0 else 0
-    abstain_percentage = (abstain_count / total_votes) * 100 if total_votes > 0 else 0
-    no_percentage = (no_count / total_votes) * 100 if total_votes > 0 else 0
-    no_with_veto_percentage = (no_with_veto_count / total_votes) * 100 if total_votes > 0 else 0
+    def safe_percentage(count, total):
+        return (count / total) * 100 if total > 0 else 0
+
+    yes_percentage = safe_percentage(yes_count, total_votes)
+    abstain_percentage = safe_percentage(abstain_count, total_votes)
+    no_percentage = safe_percentage(no_count, total_votes)
+    no_with_veto_percentage = safe_percentage(no_with_veto_count, total_votes)
 
     submit_time = parse_date(proposal['submit_time'], proposal['id'], "submit_time")
     deposit_end_time = parse_date(proposal['deposit_end_time'], proposal['id'], "deposit_end_time")
