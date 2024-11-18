@@ -8,15 +8,16 @@ Artifacts for mac & linux (ubuntu) are stored in the github workflow runs.
 
 1. Clone the repository.
 2. Install 
-    - `brew install pre-commit` # for macOS
-    - `pip install pre-commit` # for Linux
-    - `uv` as per https://docs.astral.sh/uv/
-    - `uv pip install -U pyinstaller` to create a standalone executables
+    - Required:
+        - `brew install pre-commit` # for macOS
+        - `pip install pre-commit` # for Linux
+        - `uv` as per https://docs.astral.sh/uv/
+    - Optional (This is reformed in GHA)
+        - `uv pip install -U pyinstaller` to create a standalone executables
 3. Configure your API keys & Webhooks in `notifier/config.yaml`.
 
 ~~~yaml
 avatar_url: "https://avatars.githubusercontent.com/u/86979844?s=200&v=4"
-humanize_datetime: true
 
 statuspages:
   - enabled: true
@@ -136,4 +137,9 @@ optional arguments:
 
 - Create configurable templates for notifications
 - Unpack more statuspage data with components
-- Match customer tags with statuspage components
+- Match customer tags with statuspage components (50%)
+
+## FAQ
+
+- How do I update the requirements.txt manually?
+  - You can update the requirements.txt manually by running `uv export --format requirements-txt > requirements.txt`.

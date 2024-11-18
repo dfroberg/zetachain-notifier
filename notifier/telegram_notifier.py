@@ -80,5 +80,12 @@ async def send_telegram_message(bot_token: str, chat_id: int, message: str, conf
     return False
 
 def send_telegram_message_sync(bot_token, chat_id, message, config):
-    loop = asyncio.get_event_loop()
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError as e:
+        if "There is no current event loop in thread" in str(e):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        else:
+            raise
     return loop.run_until_complete(send_telegram_message(bot_token, chat_id, message, config))
