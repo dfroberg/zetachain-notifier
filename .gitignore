@@ -1,4 +1,3 @@
-config.py
 config.yaml
 sent_updates.pkl
 affected_components.pkl
