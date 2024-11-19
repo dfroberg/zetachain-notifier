@@ -15,6 +15,15 @@ config = load_config()
 customers = config['customers']
 sent_updates = load_sent_updates()
 
+def match_customers_to_update(update_tags, customers):
+    affected_customers = []
+    update_tags = set(update_tags)
+    for customer in customers:
+        customer_tags = set(customer["groups"])
+        if "any" in customer_tags or "all" in customer_tags or customer_tags & update_tags:
+            affected_customers.append(customer)
+    return affected_customers
+
 @app.route('/broadcast', methods=['POST'])
 def broadcast():
     data = request.json
@@ -33,7 +42,8 @@ def broadcast():
         proposal = fetch_broadcast(proposal_id)
         if proposal:
             formatted_proposal = format_governance_proposal(proposal)
-            for customer in customers:
+            affected_customers = match_customers_to_update(component, customers)
+            for customer in affected_customers:
                 if customer["enable"]:
                     sent_updates.add(proposal_id)
 
@@ -55,7 +65,8 @@ def broadcast():
             logger.error("Proposal not found")
             return jsonify({"error": "Proposal not found"}), 404
     else:
-        for customer in customers:
+        affected_customers = match_customers_to_update(component, customers)
+        for customer in affected_customers:
             if customer["enable"]:
                 if customer["discord"]["enabled"]:
                     message = format_broadcast_for_discord(custom_message, customer, config)

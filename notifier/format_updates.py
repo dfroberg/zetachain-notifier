@@ -25,7 +25,8 @@ def format_status_update(incident):
         "resolved_at": resolved_at,
         "resolved_at_display": resolved_at_display,
         "impact": incident["impact"],
-        "latest_update": latest_update.get('body', 'No updates available.')
+        "latest_update": latest_update.get('body', 'No updates available.'),
+        "tags": incident.get('tags', [])
     }
     return formatted_update
 

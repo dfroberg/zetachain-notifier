@@ -15,7 +15,19 @@ def fetch_status_updates(api_key, page_id):
         response = session.get(url, headers=headers)
         response.raise_for_status()
         logger.info("Fetched status updates")
-        return response.json()
+        updates = response.json()
+
+        # Fetch components and update tags
+        components = fetch_statuspage_components(api_key, page_id)
+        for update in updates:
+            affected_components = [component["name"] for component in components if component["status"] != "operational"]
+            logger.debug(f"Affected components for update {update['id']}: {affected_components}") if affected_components else logger.debug(f"Affected components for update {update['id']}: None")
+            if affected_components:
+                update["tags"] = affected_components
+            else:
+                update["tags"] = ["all", "any"]
+
+        return updates
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to fetch status updates: {e}")
         return []

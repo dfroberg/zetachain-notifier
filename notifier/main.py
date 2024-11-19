@@ -17,8 +17,22 @@ import threading
 def run_api():
     app.run(port=5000)
 
+def match_customers_to_update(update, customers):
+    affected_customers = []
+    update_tags = set(update.get("tags", []))
+    for customer in customers:
+        customer_tags = set(customer.get("groups", []))
+        if "any" in customer_tags or "all" in customer_tags or customer_tags & update_tags:
+            affected_customers.append(customer)
+            logger.debug(f"Matched customer {customer['name']} to update {update['id']}") if customer["enable"] else logger.debug(f"Matched customer {customer['name']} to update {update['id']} (disabled)")
+        else:
+            logger.debug(f"Did not match customer {customer['name']} to update {update['id']}") if customer["enable"] else logger.debug(f"Did not match customer {customer['name']} to update {update['id']} (disabled)")
+            logger.debug(f"Customer tags: {customer_tags}")
+            logger.debug(f"Update tags: {update_tags}") if update_tags else logger.debug(f"Update tags: None")
+    return affected_customers
+
 def main(override_date_filter):
-    global config, config_mtime, avatar_url, statuspages, customers, affected_components
+    global config, config_mtime, avatar_url, statuspages, customers
 
     sent_updates = load_sent_updates()
     today = datetime.now().date()
@@ -41,7 +55,10 @@ def main(override_date_filter):
                 try:
                     update_hash = hash_data(update)
                     if update_hash not in sent_updates and (isoparse(update["created_at"]).date() == today or isoparse(update["updated_at"]).date() == today):
+                        logger.debug(f"Update {update['id']} created at {isoparse(update['created_at']).date()}, updated at {isoparse(update['updated_at']).date()}")
                         new_updates.append(update)
+                    else:
+                        logger.debug(f"Update {update['id']} created at {isoparse(update['created_at']).date()}, updated at {isoparse(update['updated_at']).date()} not sent")
                 except (ParserError, ValueError) as e:
                     logger.error(f"Failed to parse date for update {update['id']}: {e}")
 
@@ -56,7 +73,8 @@ def main(override_date_filter):
 
         if new_updates or new_proposals:
             for update in new_updates:
-                for customer in customers:
+                affected_customers = match_customers_to_update(update, customers)
+                for customer in affected_customers:
                     if customer["enable"]:
                         notify_customer(customer, update, "status", config)
                         sent_updates.add(update["id"])
@@ -64,7 +82,8 @@ def main(override_date_filter):
             
             for proposal in new_proposals:
                 formatted_proposal = format_governance_proposal(proposal)
-                for customer in customers:
+                affected_customers = match_customers_to_update(formatted_proposal, customers)
+                for customer in affected_customers:
                     if customer["enable"]:
                         notify_customer(customer, formatted_proposal, "governance", config)
                         sent_updates.add(proposal['id'])
@@ -104,7 +123,6 @@ if __name__ == "__main__":
                     avatar_url = config['avatar_url']
                     statuspages = config['statuspages']
                     customers = config['customers']
-                    affected_components = load_affected_components()
                 main(args.override_date_filter)
                 time.sleep(30)
         logger.info("Notifier script finished")
