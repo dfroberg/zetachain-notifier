@@ -1,7 +1,10 @@
 from flask import Flask, request, jsonify
 from loguru import logger
 from fetch_updates import fetch_broadcast
-from format_updates import format_governance_proposal, format_broadcast_for_discord, format_broadcast_for_slack, format_broadcast_for_telegram
+from format_updates import format_governance_proposal, format_broadcast_for_discord, format_broadcast_for_slack, format_broadcast_for_telegram, format_governance_broadcast_for_discord, format_governance_broadcast_for_slack, format_governance_broadcast_for_telegram
+from discord_notifier import send_discord_message
+from slack_notifier import send_slack_message
+from telegram_notifier import send_telegram_message_sync
 from utils import load_sent_updates, save_sent_updates
 from config import load_config
 from notify import notify_customer
@@ -24,7 +27,7 @@ def broadcast():
         return jsonify({"error": "Component and message are required"}), 400
 
     update_type = "governance" if proposal_id else "broadcast"
-    custom_message = f"Custom Broadcast: {message}"
+    custom_message = f"{message}"
 
     if update_type == "governance":
         proposal = fetch_broadcast(proposal_id)
@@ -32,9 +35,22 @@ def broadcast():
             formatted_proposal = format_governance_proposal(proposal)
             for customer in customers:
                 if customer["enable"]:
-                    notify_customer(customer, formatted_proposal, update_type, config)
                     sent_updates.add(proposal_id)
-                    logger.info(f"Notified {customer['name']} about governance proposal {proposal_id}")
+
+                    if customer["discord"]["enabled"]:
+                        message = format_governance_broadcast_for_discord(custom_message, formatted_proposal, customer, config)
+                        send_discord_message(customer["discord"]["webhook_url"], message, config)
+                        logger.info(f"Sent Broadcast Discord message to {customer['name']}")
+                    
+                    if customer["slack"]["enabled"]:
+                        message_blocks = format_governance_broadcast_for_slack(custom_message, formatted_proposal, customer, config)
+                        send_slack_message(customer["slack"]["webhook_url"], message_blocks, "new", config)
+                        logger.info(f"Sent Broadcast Slack message to {customer['name']}")
+                    
+                    if customer["telegram"]["enabled"]:
+                        message = format_governance_broadcast_for_telegram(custom_message, formatted_proposal, customer, config)
+                        send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
+                        logger.info(f"Sent Broadcast Telegram message to {customer['name']}")
         else:
             logger.error("Proposal not found")
             return jsonify({"error": "Proposal not found"}), 404
@@ -43,17 +59,17 @@ def broadcast():
             if customer["enable"]:
                 if customer["discord"]["enabled"]:
                     message = format_broadcast_for_discord(custom_message, customer, config)
-                    notify_customer(customer, message, "broadcast", config)
+                    send_discord_message(customer["discord"]["webhook_url"], message, config)
                     logger.info(f"Sent Broadcast Discord message to {customer['name']}")
                 
                 if customer["slack"]["enabled"]:
                     message_blocks = format_broadcast_for_slack(custom_message, customer, config)
-                    notify_customer(customer, message_blocks, "broadcast", config)
+                    send_slack_message(customer["slack"]["webhook_url"], message_blocks, "new", config)
                     logger.info(f"Sent Broadcast Slack message to {customer['name']}")
                 
                 if customer["telegram"]["enabled"]:
                     message = format_broadcast_for_telegram(custom_message, customer, config)
-                    notify_customer(customer, message, "broadcast", config)
+                    send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
                     logger.info(f"Sent Broadcast Telegram message to {customer['name']}")
 
     save_sent_updates(sent_updates)

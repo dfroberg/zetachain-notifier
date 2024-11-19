@@ -1,8 +1,17 @@
 import requests
+import sys
 
 def main():
     component = input("Enter the component: ")
-    message = input("Enter the message: ")
+    print("Enter the message (end with Ctrl-D):")
+    lines = []
+    try:
+        while True:
+            line = input()
+            lines.append(line)
+    except EOFError:
+        pass
+    message = "\n".join(lines)
     proposal_id = input("Enter the proposal ID (optional): ")
 
     data = {
@@ -14,7 +23,7 @@ def main():
     # Display preview
     print("\n--- Preview ---")
     print(f"Component: {component}")
-    print(f"Message: {message}")
+    print(f"Message:\n{message}")
     if proposal_id:
         print(f"Proposal ID: {proposal_id}")
     else:

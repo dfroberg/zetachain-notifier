@@ -92,7 +92,6 @@ def format_broadcast_for_discord(message, customer, config):
             "name": "Zetachain Community Notifier",
             "icon_url": avatar_url
         },
-        "title": "Broadcast Message",
         "status": "new",
         "description": message,
         "color": 0x0000ff,  # Blue color for broadcast
@@ -109,7 +108,7 @@ def format_broadcast_for_slack(message, customer, config):
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"Hi {customer['name']}\n\n*Broadcast Message*\n{message}"
+                "text": f"Hi {customer['name']}\n\n{message}"
             }
         },
         {
@@ -134,8 +133,128 @@ def format_broadcast_for_telegram(message, customer, config):
     return textwrap.dedent(f"""
         Hi {customer['name']}
 
-        *Broadcast Message*
         {message}
+
+        _Sent via Zetachain Community Notifier_
+        Tags: {tags_text}
+    """)
+
+def format_governance_broadcast_for_discord(message, proposal, customer, config):
+    avatar_url = config['avatar_url']
+    embed = {
+        "author": {
+            "name": "Zetachain Community Notifier",
+            "icon_url": avatar_url
+        },
+        "title": f"{proposal['status_icon']} Governance Proposal: #{proposal['id']} - {proposal['title']}",
+        "description": f"{message}\n\n**Description:**\n{proposal['summary']}",
+        "color": 0x0000ff,  # Blue color for broadcast
+        "fields": [
+            {"name": "Status", "value": proposal['status'], "inline": True},
+            {"name": "Type", "value": proposal['type'], "inline": True},
+            {"name": "Submit Time", "value": proposal['submit_time_display'], "inline": False},
+            {"name": "Deposit End Time", "value": proposal['deposit_end_time_display'], "inline": False},
+            {"name": "Voting End Time", "value": proposal['voting_end_time_display'], "inline": False},
+            {"name": "Yes", "value": f"{proposal['yes_percentage']:.2f}%\n{proposal['yes_count']:,.2f} ZETA", "inline": True},
+            {"name": "No", "value": f"{proposal['no_percentage']:.2f}%\n{proposal['no_count']:,.2f} ZETA", "inline": True},
+            {"name": "Abstain", "value": f"{proposal['abstain_percentage']:.2f}%\n{proposal['abstain_count']:,.2f} ZETA", "inline": True},
+            {"name": "No with Veto", "value": f"{proposal['no_with_veto_percentage']:.2f}%\n{proposal['no_with_veto_count']:,.2f} ZETA", "inline": True},
+            {"name": "More details", "value": proposal['proposal_link'], "inline": False}
+        ],
+        "footer": {
+            "text": f"Sent via Zetachain Community Notifier\nTags: {', '.join([f'`{tag}`' for tag in customer['groups']])}"
+        }
+    }
+    return embed
+
+def format_governance_broadcast_for_slack(message, proposal, customer, config):
+    tags_text = ", ".join([f"`{tag}`" for tag in customer["groups"]])
+    return [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Hi {customer['name']}\n\n{message}\n\n*Governance Proposal: #{proposal['id']} - {proposal['title']}*\n{proposal['summary']}"
+            }
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "section",
+            "fields": [
+                {"type": "mrkdwn", "text": f"*Status:*\n{proposal['status']}"},
+                {"type": "mrkdwn", "text": f"*Type:*\n{proposal['type']}"},
+                {"type": "mrkdwn", "text": f"*Submit Time:*\n{proposal['submit_time_display']}"},
+                {"type": "mrkdwn", "text": f"*Deposit End Time:*\n{proposal['deposit_end_time_display']}"},
+                {"type": "mrkdwn", "text": f"*Voting End Time:*\n{proposal['voting_end_time_display']}"},
+                {"type": "mrkdwn", "text": f"*Yes:*\n{proposal['yes_percentage']:.2f}%\n{proposal['yes_count']:,.2f} ZETA"},
+                {"type": "mrkdwn", "text": f"*No:*\n{proposal['no_percentage']:.2f}%\n{proposal['no_count']:,.2f} ZETA"},
+                {"type": "mrkdwn", "text": f"*Abstain:*\n{proposal['abstain_percentage']:.2f}%\n{proposal['abstain_count']:,.2f} ZETA"},
+                {"type": "mrkdwn", "text": f"*No with Veto:*\n{proposal['no_with_veto_percentage']:.2f}%\n{proposal['no_with_veto_count']:,.2f} ZETA"}
+            ]
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"More details: {proposal['proposal_link']}"
+                }
+            ]
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"Sent via Zetachain Community Notifier\n\nTags: {tags_text}"
+                }
+            ]
+        },
+        {
+            "type": "divider"
+        }
+    ]
+
+def format_governance_broadcast_for_telegram(message, proposal, customer, config):
+    tags_text = ", ".join([f"`{tag}`" for tag in customer["groups"]])
+    return textwrap.dedent(f"""
+        Hi {customer['name']}
+
+        {message}
+
+        *Governance Proposal: #{proposal['id']} - {proposal['title']}*
+        {proposal['summary']}
+
+        *Status:* {proposal['status']}
+        *Type:* {proposal['type']}
+        *Submit Time:* {proposal['submit_time_display']}
+        *Deposit End Time:* {proposal['deposit_end_time_display']}
+        *Voting End Time:* {proposal['voting_end_time_display']}
+        Votes Tallies:
+        *Yes*
+        {proposal['yes_percentage']:.2f}%
+        {proposal['yes_count']:,.2f} ZETA
+
+        *No*
+        {proposal['no_percentage']:.2f}%
+        {proposal['no_count']:,.2f} ZETA
+
+        *Abstain*
+        {proposal['abstain_percentage']:.2f}%
+        {proposal['abstain_count']:,.2f} ZETA
+
+        *No with Veto*
+        {proposal['no_with_veto_percentage']:.2f}%
+        {proposal['no_with_veto_count']:,.2f} ZETA
+        More details: {proposal['proposal_link']}
 
         _Sent via Zetachain Community Notifier_
         Tags: {tags_text}

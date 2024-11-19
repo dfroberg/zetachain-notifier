@@ -40,18 +40,3 @@ def notify_customer(customer, update, update_type, config):
             message = format_governance_for_telegram(update, customer, config)
             send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
             logger.info(f"Sent Telegram message to {customer['name']}")
-    elif update_type == "broadcast":
-        if customer["discord"]["enabled"]:
-            message = format_status_for_discord(update, customer, config)
-            send_discord_message(customer["discord"]["webhook_url"], message, config)
-            logger.info(f"Sent Broadcast Discord message to {customer['name']}")
-        
-        if customer["slack"]["enabled"]:
-            message_blocks = format_status_for_slack(update, customer, config)
-            send_slack_message(customer["slack"]["webhook_url"], message_blocks, update['status'], config)
-            logger.info(f"Sent Broadcast Slack message to {customer['name']}")
-        
-        if customer["telegram"]["enabled"]:
-            message = format_status_for_telegram(update, customer, config)
-            send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
-            logger.info(f"Sent Broadcast Telegram message to {customer['name']}")
