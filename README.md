@@ -118,20 +118,59 @@ optional arguments:
 
 ## Examples
 
-### Slack
+### Automated Zetachain Proposal Updates
+
+the notifier watches the Zetachain for gorvenance proposals and sends a notification to the specified channels.
+
+#### To Slack
 ![Governance Slack Example](assets/governance_slack.png)
 
-### Discord
+#### To Discord
 ![Discord Example](assets/governance_discord.png)
 
-### Telegram
+#### To Telegram
 ![Telegram Example](assets/governance_telegram.png)
 
-### Statuspage Incident Upstream
+### Automated Zetachain Incident Updates
+
+The notifier watches the Zetachain statuspage and send incidents and updates to the specified channels.
+
+#### To Statuspage Incident Upstream
 ![Statuspage Incident Upstream Example](assets/status_upstream.png)
 
-### Statuspage Discord
+#### To Discord
 ![Statuspage Discord Example](assets/status_discord.png)
+
+#### To Slack
+![Statuspage Slack Example](assets/status_slack.png)
+
+#### To Telegram
+![Statuspage Telegram Example](assets/status_telegram.png)
+### Broadcast
+
+Send broadcasts to the specified channels. This uses the API to send a message.
+
+#### To Slack
+![Broadcast Slack Example](assets/broadcast_slack.png)
+
+#### To Telegram
+![Broadcast Telegram Example](assets/broadcast_telegram.png)
+
+#### To Discord
+![Broadcast Discord Example](assets/broadcast_discord.png)
+
+### Broadcast with Governance Proposal
+
+This uses the the API to send a custom message with an attached governance proposal
+to the specified channels.
+
+#### To Slack
+![Broadcast with Governance Proposal Slack Example](assets/governance_broadcast_slack.png)
+#### To Telegram
+![Broadcast with Governance Proposal Telegram Example](assets/governance_broadcast_telegram.png)
+#### To Discord
+![Broadcast with Governance Proposal Discord Example](assets/governance_broadcast_discord.png)
+
 
 ## TODO:
 
