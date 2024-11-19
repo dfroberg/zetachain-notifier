@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 from loguru import logger
 from dateutil.parser import isoparse, ParserError
-from config import config, config_mtime, avatar_url, statuspages, customers, get_config_mtime, load_config
+from config import config, config_mtime, avatar_url, statuspages, customers, get_config_mtime, load_config, check_config_update
 from utils import load_sent_updates, save_sent_updates, load_affected_components, save_affected_components, hash_data
 from fetch_updates import fetch_status_updates, fetch_statuspage_components, fetch_governance_proposals
 from format_updates import format_status_update, format_governance_proposal
@@ -97,11 +97,10 @@ if __name__ == "__main__":
             except Exception as e:
                 logger.error(f"Failed to start API thread: {e}")
             while True:
-                current_mtime = get_config_mtime()
-                if current_mtime != config_mtime:
-                    logger.info("Detected changes in config.yaml, reloading configuration")
-                    config = load_config()
-                    config_mtime = current_mtime
+                new_config, new_mtime = check_config_update(config_mtime)
+                if new_config:
+                    config = new_config
+                    config_mtime = new_mtime
                     avatar_url = config['avatar_url']
                     statuspages = config['statuspages']
                     customers = config['customers']
