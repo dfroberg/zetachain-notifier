@@ -1,18 +1,37 @@
 import requests
 import sys
+import argparse
 
 def main():
-    component = input("Enter the component: ")
-    print("Enter the message (end with Ctrl-D):")
-    lines = []
-    try:
-        while True:
-            line = input()
-            lines.append(line)
-    except EOFError:
-        pass
-    message = "\n".join(lines)
-    proposal_id = input("Enter the proposal ID (optional): ")
+    parser = argparse.ArgumentParser(description="Broadcast a message to the notifier API")
+    parser.add_argument('--component', required=True, help="The component to broadcast the message to")
+    parser.add_argument('--proposal', help="The proposal ID (optional)")
+    parser.add_argument('--message', help="The message to broadcast (optional, can be piped in)")
+    parser.add_argument('--yes', action='store_true', help="Automatically confirm the broadcast message")
+
+    args = parser.parse_args()
+
+    component = args.component
+    proposal_id = args.proposal
+    message = args.message
+    auto_confirm = args.yes
+
+    # If message is not provided as an argument, read from stdin
+    if not message:
+        if not sys.stdin.isatty():
+            print("Reading message from stdin (end with Ctrl-D):")
+            lines = sys.stdin.read().splitlines()
+            message = "\n".join(lines)
+        else:
+            print("Enter the message (end with Ctrl-D):")
+            lines = []
+            try:
+                while True:
+                    line = input()
+                    lines.append(line)
+            except EOFError:
+                pass
+            message = "\n".join(lines)
 
     data = {
         "component": component,
@@ -30,7 +49,11 @@ def main():
         print("Proposal ID: None")
     print("----------------\n")
 
-    confirm = input("Do you want to send this broadcast? (yes/no or y/n): ").strip().lower()
+    if auto_confirm:
+        confirm = 'yes'
+    else:
+        confirm = input("Do you want to send this broadcast? (yes/no or y/n): ").strip().lower()
+
     if confirm in ['yes', 'y']:
         response = requests.post("http://localhost:5000/broadcast", json=data)
         if response.status_code == 200:
