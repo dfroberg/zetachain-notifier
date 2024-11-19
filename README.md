@@ -182,3 +182,93 @@ to the specified channels.
 
 - How do I update the requirements.txt manually?
   - You can update the requirements.txt manually by running `uv export --format requirements-txt > requirements.txt`.
+
+## Using broadcast.py (API)
+
+You can use the `broadcast.py` script to send a message to the notifier API. You can specify the component, proposal ID, and message as command-line arguments, and the message can be piped in or entered interactively. The script also supports automatic confirmation of the broadcast message.
+
+### Command-Line Arguments
+
+- `--component`: The component to broadcast the message about (required).
+- `--proposal`: The proposal ID (optional).
+- `--message`: The message to broadcast (optional, can be piped in).
+- `--yes`: Automatically confirm the broadcast message (optional).
+
+### Examples
+
+#### Interactive Input
+
+```sh
+uv run broadcast.py --component testnet --proposal 41
+```
+
+You will be prompted to enter the message interactively. End the input with `Ctrl-D`.
+
+#### Piped Input
+
+```sh
+echo "This is a test message" | uv run broadcast.py --component testnet --proposal 41
+```
+
+The message will be read from the piped input.
+
+#### Auto-Confirm
+
+```sh
+echo "This is a test message" | uv run broadcast.py --component testnet --proposal 41 --yes
+```
+
+The message will be read from the piped input and automatically confirmed.
+
+### Script Details
+
+The script performs the following steps:
+
+1. Parses command-line arguments.
+2. Reads the message from the `--message` argument, standard input (if piped), or interactively (if not provided).
+3. Displays a preview of the broadcast details.
+4. Prompts for confirmation (unless `--yes` is provided).
+5. Sends the broadcast message to the notifier API.
+
+### Example Workflow
+
+1. **Run the Script**:
+    ```sh
+    python broadcast.py --component testnet --proposal 41
+    ```
+
+2. **Enter the Message**:
+    ```
+    Enter the message (end with Ctrl-D):
+    This is a test message.
+    Another line of the message.
+    ```
+
+3. **Preview**:
+    ```
+    --- Preview ---
+    Component: testnet
+    Message:
+    This is a test message.
+    Another line of the message.
+    Proposal ID: 41
+    ----------------
+    ```
+
+4. **Confirmation**:
+    ```
+    Do you want to send this broadcast? (yes/no or y/n): yes
+    ```
+
+5. **Broadcast Sent**:
+    ```
+    Broadcast sent successfully
+    ```
+
+### Error Handling
+
+If the broadcast fails, the script will display an error message with the details of the failure.
+
+```sh
+Failed to send broadcast: <error_message>
+```
