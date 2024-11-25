@@ -282,6 +282,15 @@ wheels = [
 ]
 
 [[package]]
+name = "jsonpickle"
+version = "4.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/04/b7/9fb3cb5915f7363ceea7eb433866a69e8c01b43201daf368afd5c2ff722b/jsonpickle-4.0.0.tar.gz", hash = "sha256:fc670852b204d77601b08f8f9333149ac37ab6d3fe4e6ed3b578427291f63736", size = 314587 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a1/64/815460f86d94c9e1431800a75061719824c6fef14d88a6117eba3126cd5b/jsonpickle-4.0.0-py3-none-any.whl", hash = "sha256:53730b9e094bc41f540bfdd25eaf6e6cf43811590e9e1477abcec44b866ddcd9", size = 46157 },
+]
+
+[[package]]
 name = "loguru"
 version = "0.7.2"
 source = { registry = "https://pypi.org/simple" }
@@ -371,6 +380,7 @@ dependencies = [
     { name = "feedparser" },
     { name = "flask" },
     { name = "humanize" },
+    { name = "jsonpickle" },
     { name = "loguru" },
     { name = "python-dateutil" },
     { name = "python-telegram-bot" },
@@ -385,6 +395,7 @@ requires-dist = [
     { name = "feedparser", specifier = ">=6.0.11" },
     { name = "flask", specifier = ">=3.1.0" },
     { name = "humanize", specifier = ">=4.11.0" },
+    { name = "jsonpickle", specifier = ">=4.0.0" },
     { name = "loguru", specifier = ">=0.7.2" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
     { name = "python-telegram-bot", specifier = ">=21.7" },

@@ -21,7 +21,6 @@ def fetch_status_updates(api_key, page_id):
         components = fetch_statuspage_components(api_key, page_id)
         for update in updates:
             affected_components = [component["name"] for component in components if component["status"] != "operational"]
-            logger.debug(f"Affected components for update {update['id']}: {affected_components}") if affected_components else logger.debug(f"Affected components for update {update['id']}: None")
             if affected_components:
                 update["tags"] = affected_components
             else:
@@ -49,8 +48,8 @@ def fetch_statuspage_components(api_key, page_id):
         logger.error(f"Failed to fetch components for status page {page_id}: {e}")
         return []
 
-def fetch_governance_proposals():
-    url = 'https://zetachain.blockpi.network/lcd/v1/public/cosmos/gov/v1/proposals?proposal_status=PROPOSAL_STATUS_UNSPECIFIED&pagination.count_total=true&pagination.reverse=true'
+def fetch_governance_proposals(network):
+    url = network["endpoint"]
     headers = {'accept': 'application/json'}
     
     session = requests.Session()
@@ -60,10 +59,13 @@ def fetch_governance_proposals():
     try:
         response = session.get(url, headers=headers)
         response.raise_for_status()
-        logger.info("Fetched governance proposals")
-        return response.json().get('proposals', [])
+        logger.info(f"Fetched governance proposals for {network['name']}")
+        proposals = response.json().get('proposals', [])
+        for proposal in proposals:
+            proposal['tags'] = [network['name']]
+        return proposals
     except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to fetch governance proposals: {e}")
+        logger.error(f"Failed to fetch governance proposals for {network['name']}: {e}")
         return []
 
 def fetch_broadcast(proposal_id=None):

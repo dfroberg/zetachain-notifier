@@ -5,7 +5,7 @@ from format_updates import format_governance_proposal, format_broadcast_for_disc
 from discord_notifier import send_discord_message
 from slack_notifier import send_slack_message
 from telegram_notifier import send_telegram_message_sync
-from utils import load_sent_updates, save_sent_updates
+from utils import load_sent_updates, save_sent_updates, hash_data
 from config import load_config
 from notify import notify_customer
 
@@ -37,7 +37,8 @@ def broadcast():
 
     update_type = "governance" if proposal_id else "broadcast"
     custom_message = f"{message}"
-
+    sent_updates = load_sent_updates()
+    # Fetch proposal if proposal_id is provided
     if update_type == "governance":
         proposal = fetch_broadcast(proposal_id)
         if proposal:
@@ -45,22 +46,35 @@ def broadcast():
             affected_customers = match_customers_to_update(component, customers)
             for customer in affected_customers:
                 if customer["enable"]:
-                    sent_updates.add(proposal_id)
-
-                    if customer["discord"]["enabled"]:
+                    if customer.get("discord", {}).get("enabled", False):
                         message = format_governance_broadcast_for_discord(custom_message, formatted_proposal, customer, config)
-                        send_discord_message(customer["discord"]["webhook_url"], message, config)
-                        logger.info(f"Sent Broadcast Discord message to {customer['name']}")
+                        update_hash = hash_data(message)
+                        if update_hash not in sent_updates:
+                            send_discord_message(customer["discord"]["webhook_url"], message, config)
+                            sent_updates.add(update_hash) # Lets not send again unless it changes
+                            logger.info(f"Sent Broadcast Discord message to {customer['name']}")
+                        else:
+                            logger.info(f"Broadcast Discord message already sent to {customer['name']}")
                     
-                    if customer["slack"]["enabled"]:
+                    if customer.get("slack", {}).get("enabled", False):
                         message_blocks = format_governance_broadcast_for_slack(custom_message, formatted_proposal, customer, config)
-                        send_slack_message(customer["slack"]["webhook_url"], message_blocks, "new", config)
-                        logger.info(f"Sent Broadcast Slack message to {customer['name']}")
+                        update_hash = hash_data(message_blocks)
+                        if update_hash not in sent_updates:
+                            send_slack_message(customer["slack"]["webhook_url"], message_blocks, "new", config)
+                            sent_updates.add(update_hash)
+                            logger.info(f"Sent Broadcast Slack message to {customer['name']}")
+                        else:
+                            logger.info(f"Broadcast Slack message already sent to {customer['name']}")
                     
-                    if customer["telegram"]["enabled"]:
+                    if customer.get("telegram", {}).get("enabled", False):
                         message = format_governance_broadcast_for_telegram(custom_message, formatted_proposal, customer, config)
-                        send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
-                        logger.info(f"Sent Broadcast Telegram message to {customer['name']}")
+                        update_hash = hash_data(message)
+                        if update_hash not in sent_updates:
+                            send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
+                            sent_updates.add(update_hash) # Lets not send again unless it changes
+                            logger.info(f"Sent Broadcast Telegram message to {customer['name']}")
+                        else:
+                            logger.info(f"Broadcast Telegram message already sent to {customer['name']}")
         else:
             logger.error("Proposal not found")
             return jsonify({"error": "Proposal not found"}), 404
@@ -68,21 +82,36 @@ def broadcast():
         affected_customers = match_customers_to_update(component, customers)
         for customer in affected_customers:
             if customer["enable"]:
-                if customer["discord"]["enabled"]:
+                if customer.get("discord", {}).get("enabled", False):
                     message = format_broadcast_for_discord(custom_message, customer, config)
-                    send_discord_message(customer["discord"]["webhook_url"], message, config)
-                    logger.info(f"Sent Broadcast Discord message to {customer['name']}")
+                    update_hash = hash_data(message)
+                    if update_hash not in sent_updates:
+                        send_discord_message(customer["discord"]["webhook_url"], message, config)
+                        sent_updates.add(update_hash)
+                        logger.info(f"Sent Broadcast Discord message to {customer['name']}")
+                    else:
+                        logger.info(f"Broadcast Discord message already sent to {customer['name']}")
                 
-                if customer["slack"]["enabled"]:
+                if customer.get("slack", {}).get("enabled", False):
                     message_blocks = format_broadcast_for_slack(custom_message, customer, config)
-                    send_slack_message(customer["slack"]["webhook_url"], message_blocks, "new", config)
-                    logger.info(f"Sent Broadcast Slack message to {customer['name']}")
+                    update_hash = hash_data(message_blocks)
+                    if update_hash not in sent_updates:
+                        send_slack_message(customer["slack"]["webhook_url"], message_blocks, "new", config)
+                        sent_updates.add(update_hash)
+                        logger.info(f"Sent Broadcast Slack message to {customer['name']}")
+                    else:
+                        logger.info(f"Broadcast Slack message already sent to {customer['name']}")
                 
-                if customer["telegram"]["enabled"]:
+                if customer.get("telegram", {}).get("enabled", False):
                     message = format_broadcast_for_telegram(custom_message, customer, config)
-                    send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
-                    logger.info(f"Sent Broadcast Telegram message to {customer['name']}")
-
+                    update_hash = hash_data(message)
+                    if update_hash not in sent_updates:
+                        send_telegram_message_sync(customer["telegram"]["bot_token"], customer["telegram"]["chat_id"], message, config)
+                        sent_updates.add(update_hash) # Lets not send again unless it changes
+                        logger.info(f"Sent Broadcast Telegram message to {customer['name']}")
+                    else:
+                        logger.info(f"Broadcast Telegram message already sent to {customer['name']}")
+                        
     save_sent_updates(sent_updates)
     return jsonify({"status": "success"}), 200
 

@@ -10,10 +10,20 @@ statuspages:
     api_key: "customer2_statuspage_api_key"
     page_id: "customer2_statuspage_page_id"
 
+networks:
+  - name: "mainnet"
+    endpoint: "https://zetachain.blockpi.network/lcd/v1/public/cosmos/gov/v1/proposals?proposal_status=PROPOSAL_STATUS_UNSPECIFIED&pagination.count_total=true&pagination.reverse=true"
+  - name: "testnet"
+    endpoint: "https://zetachain-athens.blockpi.network/lcd/v1/public/cosmos/gov/v1/proposals?proposal_status=PROPOSAL_STATUS_UNSPECIFIED&pagination.count_total=true&pagination.reverse=true"
+
 customers:
   - enable: true
     name: "Danny's Crypto"
+    # Hold propsal updates for this customer so we can send instructions with it using API.
+    hold_proposals: true
+    # Match updates and proposal to these tags
     groups: ["institutional", "mainnet", "testnet", "all"]
+    # Send to customers prefered comms channels
     discord:
       enabled: true
       webhook_url: "https://discord.com/api/webhooks/your_discord_webhook_url"
@@ -24,13 +34,18 @@ customers:
       enabled: true
       bot_token: "your_telegram_bot_token"
       chat_id: "@your_telegram_channel"  # or "your_chat_id"
+    # Propagate status page updates as an upstream issue to customers status page.
+    # Don't list any of the status pages above as that woul create a loop.
     statuspage:
       enabled: false
       api_key: ""
       page_id: ""
   - enable: false
     name: "Zetachain SREs"
-    groups: ["institutional", "mainnet", "testnet", "all"]
+    # Hold NO propsals or updates for this customer. Send everything.
+    hold_proposals: false
+    # Send ALL updates to this customer
+    groups: ["all"]
     discord:
       enabled: false
       webhook_url: ""
