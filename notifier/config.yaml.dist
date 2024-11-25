@@ -1,5 +1,10 @@
 avatar_url: "https://avatars.githubusercontent.com/u/86979844?s=200&v=4"
 
+broadcast:
+  enabled: true
+  url: "http://localhost:5000/broadcast"
+  auth_token: "your_auth_token_here"
+
 statuspages:
   - enabled: true
     name: "FrobergCo Status"

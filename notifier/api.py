@@ -12,6 +12,7 @@ from notify import notify_customer
 app = Flask(__name__)
 
 config = load_config()
+broadcast_config = config.get('broadcast', {})
 customers = config['customers']
 sent_updates = load_sent_updates()
 
@@ -31,6 +32,9 @@ def match_customers_to_update(update_tags, customers):
 
 @app.route('/broadcast', methods=['POST'])
 def broadcast():
+    if not broadcast_config.get('enabled', False):
+        logger.error("Broadcasting is disabled")
+        return jsonify({"error": "Broadcasting is disabled"}), 403
     data = request.json
     component = set(data.get('component').split(','))
     message = data.get('message')
