@@ -82,7 +82,8 @@ def format_governance_proposal(proposal):
         "abstain_percentage": abstain_percentage,
         "no_percentage": no_percentage,
         "no_with_veto_percentage": no_with_veto_percentage,
-        "proposal_link": proposal_link
+        "proposal_link": proposal_link,
+        "tags": proposal['tags'],
     }
     return formatted_proposal
 

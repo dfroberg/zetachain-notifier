@@ -1,6 +1,7 @@
 import requests
 import sys
 import argparse
+from config import load_config
 
 def main():
     parser = argparse.ArgumentParser(description="Broadcast a message to the notifier API")
@@ -11,11 +12,19 @@ def main():
 
     args = parser.parse_args()
 
+    config = load_config()
+    broadcast_config = config.get('broadcast', {})
     component = args.component
     proposal_id = args.proposal
     message = args.message
     auto_confirm = args.yes
 
+    url = broadcast_config.get('url')
+    auth_token = broadcast_config.get('auth_token')
+
+    if not broadcast_config.get('enabled', False):
+        print("Broadcasting is disabled")
+        exit(1)
     # If message is not provided as an argument, read from stdin
     if not message:
         if not sys.stdin.isatty():
@@ -55,7 +64,11 @@ def main():
         confirm = input("Do you want to send this broadcast? (yes/no or y/n): ").strip().lower()
 
     if confirm in ['yes', 'y']:
-        response = requests.post("http://localhost:5000/broadcast", json=data)
+        headers = {
+            'Authorization': f'Bearer {auth_token}',
+            'Content-Type': 'application/json'
+        }
+        response = requests.post(url, json=data, headers=headers)
         if response.status_code == 200:
             print("Broadcast sent successfully")
         else:
