@@ -1,6 +1,7 @@
 import requests
 from loguru import logger
 from requests.adapters import HTTPAdapter
+from utils import parse_timestamp
 from urllib3.util.retry import Retry
 
 def fetch_status_updates(api_key, page_id):
@@ -19,8 +20,13 @@ def fetch_status_updates(api_key, page_id):
 
         # Fetch components and update tags
         components = fetch_statuspage_components(api_key, page_id)
+        logger.debug(f"Components: {components}")
         for update in updates:
-            affected_components = [component["name"] for component in components if component["status"] != "operational"]
+            update_time = parse_timestamp(update["updated_at"])
+            affected_components = [
+                component["name"] for component in components
+                if abs((parse_timestamp(component["updated_at"]) - update_time).total_seconds()) <= 1800
+            ]
             if affected_components:
                 update["tags"] = affected_components
             else:

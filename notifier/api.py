@@ -22,12 +22,17 @@ def match_customers_to_update(update_tags, customers):
         customer_tags = set(customer["groups"])
         if "any" in customer_tags or "all" in customer_tags or customer_tags & update_tags:
             affected_customers.append(customer)
+            logger.debug(f"Matched customer {customer['name']} to broadcast tags {update_tags}") if customer["enable"] else logger.debug(f"Matched customer {customer['name']} to broadcast {update_tags} (disabled)")
+        else:
+            logger.debug(f"Did not match customer {customer['name']} to broadcast tags {update_tags}") if customer["enable"] else logger.debug(f"Did not match customer {customer['name']} to broadcast {update_tags} (disabled)")
+            logger.debug(f"Customer tags: {customer_tags}")
+            logger.debug(f"Update tags: {update_tags}") if update_tags else logger.debug(f"Broadcast tags: None")
     return affected_customers
 
 @app.route('/broadcast', methods=['POST'])
 def broadcast():
     data = request.json
-    component = data.get('component')
+    component = set(data.get('component').split(','))
     message = data.get('message')
     proposal_id = data.get('proposal_id')
     

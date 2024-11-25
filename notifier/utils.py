@@ -1,13 +1,21 @@
 import hashlib
 import os
 import jsonpickle
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.parser import isoparse, ParserError
 import dateparser
 from loguru import logger
 
 PICKLE_FILE = 'sent_updates.json'
 COMPONENTS_FILE = 'affected_components.json'
+
+def parse_timestamp(timestamp):
+    try:
+        # Try parsing with fractional seconds
+        return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+    except ValueError:
+        # Fallback to parsing without fractional seconds
+        return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
 
 def parse_date(date_str, incident_or_proposal_id, date_type):
     #logger.debug(f"Raw {date_type} date for ID {incident_or_proposal_id}: {date_str}")
@@ -71,7 +79,7 @@ def save_affected_components(affected_components):
 
 def match_customers_to_update(update, customers):
     affected_customers = []
-    update_tags = set(update.get("tags", []))
+    update_tags = set(update.get("tags", ["any", "all"]))
     for customer in customers:
         customer_tags = set(customer.get("groups", []))
         if "any" in customer_tags or "all" in customer_tags or customer_tags & update_tags:
