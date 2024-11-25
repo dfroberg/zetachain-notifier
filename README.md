@@ -1,8 +1,9 @@
 # Zetachain Community Notifier
 
-Work in progress on making it pretty, but it works.
+Work trial for Zetachain SRE team, implemenation of community notifier.
+Enjoy it if you find use for it :)
 
-Artifacts for mac & linux (ubuntu) are stored in the github workflow runs.
+Artifacts for mac (unsigned) & linux (ubuntu) are stored in the github workflow runs.
 
 ## Setup
 
@@ -17,8 +18,16 @@ Artifacts for mac & linux (ubuntu) are stored in the github workflow runs.
 3. Configure your API keys & Webhooks in `notifier/config.yaml`.
 
 ~~~yaml
+# Icon to include in messages
 avatar_url: "https://avatars.githubusercontent.com/u/86979844?s=200&v=4"
 
+# Configure your broadcast client and reciever
+broadcast:
+  enabled: true
+  url: "http://localhost:5000/broadcast"
+  auth_token: "your_auth_token_here"
+
+# Status pages to watch to send notifications to customers
 statuspages:
   - enabled: true
     name: "FrobergCo Status"
@@ -29,10 +38,22 @@ statuspages:
     api_key: "customer2_statuspage_api_key"
     page_id: "customer2_statuspage_page_id"
 
+# Networks to watch with tags to match to customers
+networks:
+  - name: "mainnet"
+    endpoint: "https://zetachain.blockpi.network/lcd/v1/public/cosmos/gov/v1/proposals?proposal_status=PROPOSAL_STATUS_UNSPECIFIED&pagination.count_total=true&pagination.reverse=true"
+  - name: "testnet"
+    endpoint: "https://zetachain-athens.blockpi.network/lcd/v1/public/cosmos/gov/v1/proposals?proposal_status=PROPOSAL_STATUS_UNSPECIFIED&pagination.count_total=true&pagination.reverse=true"
+
+# Customer to match updates to and their configured channels
 customers:
   - enable: true
     name: "Danny's Crypto"
+    # Hold propsal updates for this customer so we can send instructions with it using API.
+    hold_proposals: true
+    # Match updates and proposal to these tags
     groups: ["institutional", "mainnet", "testnet", "all"]
+    # Send to customers prefered comms channels
     discord:
       enabled: true
       webhook_url: "https://discord.com/api/webhooks/your_discord_webhook_url"
@@ -43,13 +64,18 @@ customers:
       enabled: true
       bot_token: "your_telegram_bot_token"
       chat_id: "@your_telegram_channel"  # or "your_chat_id"
+    # Propagate status page updates as an upstream issue to customers status page.
+    # Don't list any of the status pages above as that woul create a loop.
     statuspage:
       enabled: false
       api_key: ""
       page_id: ""
   - enable: false
     name: "Zetachain SREs"
-    groups: ["institutional", "mainnet", "testnet", "all"]
+    # Hold NO propsals or updates for this customer. Send everything.
+    hold_proposals: false
+    # Send ALL updates to this customer
+    groups: ["all"]
     discord:
       enabled: false
       webhook_url: ""
